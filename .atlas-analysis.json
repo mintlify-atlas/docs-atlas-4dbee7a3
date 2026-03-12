@@ -1,0 +1,87 @@
+{
+  "projectType": "saas",
+  "projectName": "Costume Retail System",
+  "projectDescription": "A full-stack costume rental management system with inventory tracking, customer management, and laundry queue functionality.",
+  "theme": "almond",
+  "primaryColor": "#6366f1",
+  "lightColor": "#a5b4fc",
+  "darkColor": "#4338ca",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/costumes",
+              "guides/customers",
+              "guides/rentals",
+              "guides/laundry",
+              "guides/employees"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/configuration",
+              "deployment/database",
+              "deployment/docker"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/costumes",
+              "api/customers",
+              "api/employees",
+              "api/rentals",
+              "api/laundry"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Costume inventory management with status tracking",
+    "Customer and employee registration",
+    "Rental service booking and tracking",
+    "Laundry queue with priority handling",
+    "RESTful API with Swagger documentation",
+    "PostgreSQL database with TypeORM"
+  ],
+  "publicApiSurface": [
+    "POST /api/prendas - Register new costume",
+    "GET /api/prendas - List all costumes",
+    "GET /api/prendas/talla/:talla - Find costumes by size",
+    "POST /api/clientes - Register new customer",
+    "GET /api/clientes - List all customers",
+    "POST /api/empleados - Register new employee",
+    "GET /api/empleados - List all employees",
+    "POST /api/servicios - Create rental service",
+    "GET /api/servicios/cliente/:clienteId - Get customer rentals",
+    "POST /api/lavanderia/agregar - Add costume to laundry queue",
+    "GET /api/lavanderia/lista - Get laundry queue",
+    "POST /api/lavanderia/enviar - Send costumes to laundry"
+  ]
+}
