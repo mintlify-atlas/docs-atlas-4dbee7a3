@@ -1,0 +1,226 @@
+---
+title: Configuration
+description: Learn how to configure the Costume Retail System for different environments
+icon: gear
+---
+
+## Environment Variables
+
+The application uses environment variables for configuration. Create a `.env` file in the root directory with the following variables:
+
+<CodeGroup>
+
+```bash Development
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=postgresql://username:password@localhost:5432/costume_retail
+```
+
+```bash Production
+NODE_ENV=production
+PORT=3000
+DATABASE_URL=postgresql://username:password@host:5432/costume_retail?sslmode=require
+```
+
+</CodeGroup>
+
+## Required Variables
+
+<Steps>
+
+<Step title="Database Configuration">
+  **DATABASE_URL** - PostgreSQL connection string
+  
+  Format: `postgresql://[user]:[password]@[host]:[port]/[database]`
+  
+  <Note>
+    The application automatically handles SSL connections in production environments.
+  </Note>
+</Step>
+
+<Step title="Environment Mode">
+  **NODE_ENV** - Application environment mode
+  
+  - `development` - Enables database synchronization, logging, and disables SSL
+  - `production` - Disables auto-sync, enables SSL, minimal logging
+  
+  <Warning>
+    Never use `synchronize: true` in production! It can cause data loss.
+  </Warning>
+</Step>
+
+<Step title="Server Port">
+  **PORT** - Server port (optional, defaults to 3000)
+  
+  The application listens on this port for incoming HTTP requests.
+</Step>
+
+</Steps>
+
+## API Configuration
+
+The application is configured in `src/main.ts` with the following settings:
+
+### Global Prefix
+
+All API endpoints are prefixed with `/api`:
+
+```typescript
+app.setGlobalPrefix('api');
+```
+
+**Example**: `http://localhost:3000/api/prendas`
+
+### CORS Settings
+
+Cross-Origin Resource Sharing (CORS) is enabled for all origins:
+
+```typescript
+app.enableCors({
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: 'Content-Type, Accept, Authorization',
+});
+```
+
+<Warning>
+  In production, consider restricting CORS to specific origins for security.
+</Warning>
+
+### Validation Pipeline
+
+Global validation is configured with the following options:
+
+```typescript
+app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true,           // Strip unknown properties
+    forbidNonWhitelisted: true, // Throw error on unknown properties
+    transform: true,            // Auto-transform payloads to DTO types
+  }),
+);
+```
+
+## TypeORM Configuration
+
+The database configuration in `src/app.module.ts` automatically adapts based on the environment:
+
+<CodeGroup>
+
+```typescript Development
+{
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  entities: [__dirname + '/**/*.entity{.ts,.js}'],
+  synchronize: true,  // Auto-creates tables
+  ssl: false,
+  logging: true,      // SQL query logging
+}
+```
+
+```typescript Production
+{
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  entities: [__dirname + '/**/*.entity{.ts,.js}'],
+  synchronize: false, // Manual migrations only
+  ssl: { rejectUnauthorized: false },
+  logging: false,     // No SQL logging
+}
+```
+
+</CodeGroup>
+
+## Configuration Module
+
+The application uses NestJS ConfigModule for environment variable management:
+
+```typescript
+ConfigModule.forRoot({ isGlobal: true })
+```
+
+This makes the `ConfigService` available globally throughout the application.
+
+## Swagger Documentation
+
+API documentation is automatically generated and available at:
+
+```
+http://localhost:3000/api/docs
+```
+
+Configuration:
+
+```typescript
+const config = new DocumentBuilder()
+  .setTitle('Costume Retail API')
+  .setDescription('Sistema de alquiler de prendas de vestir')
+  .setVersion('1.0')
+  .build();
+```
+
+<Note>
+  Swagger UI provides an interactive interface to test all API endpoints.
+</Note>
+
+## Environment-Specific Behavior
+
+<CardGroup cols={2}>
+
+<Card title="Development" icon="code">
+  - Database auto-synchronization enabled
+  - SQL query logging enabled
+  - No SSL for local database
+  - Detailed error messages
+</Card>
+
+<Card title="Production" icon="shield">
+  - Database sync disabled (use migrations)
+  - Logging disabled
+  - SSL required for database
+  - Minimal error exposure
+</Card>
+
+</CardGroup>
+
+## Quick Start
+
+<Steps>
+
+<Step title="Create Environment File">
+  ```bash
+  cp .env.example .env
+  ```
+  
+  Edit `.env` with your configuration values.
+</Step>
+
+<Step title="Install Dependencies">
+  ```bash
+  npm ci
+  ```
+</Step>
+
+<Step title="Start Development Server">
+  ```bash
+  npm run start:dev
+  ```
+  
+  The server will start on `http://localhost:3000`
+</Step>
+
+</Steps>
+
+## Verification
+
+Check that the application is running correctly:
+
+```bash
+# Health check
+curl http://localhost:3000/api
+
+# View API documentation
+open http://localhost:3000/api/docs
+```
+
+You should see the application URL and Swagger docs URL in the console output.

@@ -1,0 +1,267 @@
+---
+title: 'Managing Costumes'
+description: 'Learn how to manage costume inventory, track costume states, and search the catalog'
+icon: 'shirt'
+---
+
+## Overview
+
+The costume management system allows you to register, track, and search costumes in your rental inventory. Each costume has a unique reference code and can be in one of three states: available, rented, or in laundry.
+
+## Costume States
+
+Every costume in the system has a state that indicates its current availability:
+
+<CardGroup cols={3}>
+  <Card title="DISPONIBLE" icon="check-circle" color="#10b981">
+    Costume is available for rent and ready to be included in new rental services.
+  </Card>
+  <Card title="ALQUILADA" icon="calendar" color="#f59e0b">
+    Costume is currently rented out to a customer and cannot be rented again until returned.
+  </Card>
+  <Card title="EN_LAVANDERIA" icon="water" color="#3b82f6">
+    Costume is in the laundry queue or being cleaned, unavailable for rent.
+  </Card>
+</CardGroup>
+
+<Note>
+  When a costume is added to a rental service, the system automatically changes its state from `DISPONIBLE` to `ALQUILADA`. Similarly, when added to the laundry queue, the state changes to `EN_LAVANDERIA`.
+</Note>
+
+## Adding a New Costume
+
+To register a new costume in the inventory:
+
+<Steps>
+  <Step title="Navigate to Costumes Section">
+    Access the costume management interface from the main menu.
+  </Step>
+  
+  <Step title="Click 'New Costume' Button">
+    Click the "Register New Costume" button to open the registration form.
+  </Step>
+  
+  <Step title="Fill in Costume Details">
+    Complete all required fields with the costume information:
+    
+    <ParamField path="referencia" type="string" required>
+      Unique reference code for the costume (e.g., "PRIN-001", "SUP-042")
+    </ParamField>
+    
+    <ParamField path="nombre" type="string" required>
+      Name of the costume (e.g., "Princess Dress", "Superman Suit")
+    </ParamField>
+    
+    <ParamField path="descripcion" type="string">
+      Optional detailed description of the costume, including special features or accessories
+    </ParamField>
+    
+    <ParamField path="talla" type="string" required>
+      Size of the costume (e.g., "S", "M", "L", "XL", "Child 8-10")
+    </ParamField>
+    
+    <ParamField path="tipo" type="string" required>
+      Category or type (e.g., "Princess", "Superhero", "Historical", "Animal")
+    </ParamField>
+    
+    <ParamField path="precio_alquiler" type="number" required>
+      Rental price in your local currency. Must be a positive decimal number (e.g., 25.00, 45.50)
+    </ParamField>
+    
+    <ParamField path="estado" type="enum">
+      Initial state (defaults to `DISPONIBLE` if not specified)
+      - `DISPONIBLE`: Available for rent
+      - `ALQUILADA`: Currently rented
+      - `EN_LAVANDERIA`: In laundry
+    </ParamField>
+  </Step>
+  
+  <Step title="Save the Costume">
+    Click "Save" to register the costume in the inventory. The system will validate that the reference code is unique.
+  </Step>
+</Steps>
+
+### API Example
+
+```bash cURL
+curl -X POST http://localhost:3000/prendas \
+  -H "Content-Type: application/json" \
+  -d '{
+    "referencia": "PRIN-001",
+    "nombre": "Princess Elsa Dress",
+    "descripcion": "Blue frozen-inspired princess dress with cape",
+    "talla": "Child 8-10",
+    "tipo": "Princess",
+    "precio_alquiler": 35.00,
+    "estado": "DISPONIBLE"
+  }'
+```
+
+<Note>
+  **Validation Rules:**
+  - `referencia` must be unique across all costumes
+  - `precio_alquiler` must be a non-negative number (minimum 0)
+  - All required fields must be provided
+  - `estado` must be one of the three valid enum values
+</Note>
+
+## Searching Costumes
+
+The system provides multiple ways to search and filter costumes:
+
+<Tabs>
+  <Tab title="View All Costumes">
+    ### List All Costumes
+    
+    View the complete costume inventory with all available, rented, and laundry items.
+    
+    **Endpoint:** `GET /prendas`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/prendas
+    ```
+    
+    This returns all costumes with their current state, rental price, and full details.
+  </Tab>
+  
+  <Tab title="Search by Size">
+    ### Find Costumes by Size
+    
+    Quickly locate all costumes available in a specific size, useful when a customer requests a particular size.
+    
+    **Endpoint:** `GET /prendas/talla/:talla`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/prendas/talla/M
+    ```
+    
+    ```bash cURL
+    curl -X GET "http://localhost:3000/prendas/talla/Child%208-10"
+    ```
+    
+    <Note>
+      URL-encode size values with spaces (e.g., "Child 8-10" becomes "Child%208-10")
+    </Note>
+  </Tab>
+  
+  <Tab title="Find by Reference">
+    ### Lookup Specific Costume
+    
+    Retrieve detailed information about a single costume using its unique reference code.
+    
+    **Endpoint:** `GET /prendas/:referencia`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/prendas/PRIN-001
+    ```
+    
+    This shows the costume's complete details including:
+    - Name and description
+    - Size and type
+    - Current state
+    - Rental price
+    - Associated rental services
+    - Laundry history
+  </Tab>
+</Tabs>
+
+## Common Workflows
+
+### Preparing Costumes for an Event
+
+<Steps>
+  <Step title="Check Customer Requirements">
+    Ask the customer about their size, preferred costume type, and event date.
+  </Step>
+  
+  <Step title="Search by Size">
+    Use the size filter to find all costumes in the customer's size (e.g., `GET /prendas/talla/M`).
+  </Step>
+  
+  <Step title="Filter by State">
+    From the results, show only costumes with state `DISPONIBLE` to ensure availability.
+  </Step>
+  
+  <Step title="Show Options to Customer">
+    Present available costumes with their rental prices and descriptions.
+  </Step>
+  
+  <Step title="Create Rental Service">
+    Once customer selects costumes, create a rental service (see [Rentals Guide](/guides/rentals)).
+  </Step>
+</Steps>
+
+### Checking Costume Availability
+
+Before promising a costume to a customer:
+
+1. Look up the costume by reference: `GET /prendas/{referencia}`
+2. Check the `estado` field:
+   - If `DISPONIBLE`: Costume can be rented immediately
+   - If `ALQUILADA`: Check the associated rental service to see expected return date
+   - If `EN_LAVANDERIA`: Costume is being cleaned, check laundry queue position
+
+<Warning>
+  Never manually change a costume's state. The system automatically manages state transitions when:
+  - Adding costumes to rental services (→ `ALQUILADA`)
+  - Adding costumes to laundry queue (→ `EN_LAVANDERIA`)
+  - Completing laundry or returning from rental (→ `DISPONIBLE`)
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Descriptive References" icon="tag">
+    Create reference codes that are easy to remember and indicate the costume type (e.g., PRIN-001 for princess, SUP-001 for superhero).
+  </Card>
+  
+  <Card title="Keep Descriptions Detailed" icon="file-lines">
+    Include accessories, special features, and condition notes in the description field.
+  </Card>
+  
+  <Card title="Standardize Sizes" icon="ruler">
+    Use consistent size naming (e.g., always "Child 8-10" not "Kids 8-10" or "8-10 years").
+  </Card>
+  
+  <Card title="Set Accurate Prices" icon="dollar-sign">
+    Price costumes based on quality, demand, and cleaning costs. Premium costumes should have higher rental fees.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Reference already exists">
+    Each costume must have a unique reference code. If you see this error:
+    - Check if the costume is already registered
+    - Use a different reference code
+    - Follow your organization's reference code naming convention
+  </Accordion>
+  
+  <Accordion title="Costume stuck in ALQUILADA state">
+    If a costume remains in rented state after return:
+    - Verify the rental service has been properly closed
+    - Check if the costume should be sent to laundry first
+    - Contact system administrator if state transition fails
+  </Accordion>
+  
+  <Accordion title="Can't find costume by size">
+    If size search returns no results:
+    - Verify exact spelling and capitalization
+    - Check for extra spaces
+    - Use URL encoding for special characters
+    - Try viewing all costumes and manually filtering
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Rentals" icon="handshake" href="/guides/rentals">
+    Learn how to create rental services using registered costumes
+  </Card>
+  
+  <Card title="Laundry Management" icon="water" href="/guides/laundry">
+    Understand how to send returned costumes to laundry
+  </Card>
+</CardGroup>

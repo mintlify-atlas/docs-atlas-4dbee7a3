@@ -1,80 +1,317 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get Costume Retail System up and running in minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+This guide will help you get the Costume Retail System running locally in just a few minutes. We'll set up both the backend API and frontend interface.
 
-### Step 1: Set up your local environment
+<Note>
+Make sure you have Node.js 20+ and PostgreSQL installed before starting.
+</Note>
+
+## Quick Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone both the backend and frontend repositories:
+
+    ```bash
+    # Clone backend
+    git clone <repository-url> costume_retail_back
+    cd costume_retail_back
+
+    # Clone frontend (in a separate directory)
+    git clone <repository-url> costume_retail_front
+    cd costume_retail_front
+    ```
+  </Step>
+
+  <Step title="Set Up the Database">
+    Create a PostgreSQL database for the application:
+
+    ```bash
+    # Connect to PostgreSQL
+    psql -U postgres
+
+    # Create database
+    CREATE DATABASE costume_retail;
+
+    # Exit psql
+    \q
+    ```
+
+    <Note>
+    The system also supports cloud PostgreSQL providers like Supabase for easier setup.
+    </Note>
+  </Step>
+
+  <Step title="Configure Backend Environment">
+    Navigate to the backend directory and create your environment file:
+
+    ```bash
+    cd costume_retail_back
+    cp .env.example .env
+    ```
+
+    Edit `.env` with your database credentials:
+
+    ```bash
+    # For local PostgreSQL
+    DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/costume_retail
+
+    # Or for Supabase
+    DATABASE_URL=postgresql://postgres:PASSWORD@db.PROJECT_ID.supabase.co:5432/postgres
+
+    # Environment
+    NODE_ENV=development
+
+    # Port (optional)
+    PORT=3000
+    ```
+  </Step>
+
+  <Step title="Install Backend Dependencies">
+    Install all required packages:
+
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+
+    ```bash yarn
+    yarn install
+    ```
+
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+
+    This will install:
+    - NestJS core and platform packages
+    - TypeORM and PostgreSQL driver
+    - Class validator and transformer
+    - Swagger for API documentation
+  </Step>
+
+  <Step title="Start the Backend">
+    Run the development server:
+
+    ```bash
+    npm run start:dev
+    ```
+
+    You should see output like:
+
+    ```bash
+    Application running on: http://localhost:3000
+    Swagger docs: http://localhost:3000/api/docs
+    ```
+
+    <Note>
+    The backend uses TypeORM's `synchronize: true` in development mode, which automatically creates database tables based on your entities.
+    </Note>
+  </Step>
+
+  <Step title="Install Frontend Dependencies">
+    In a new terminal, navigate to the frontend directory:
+
+    ```bash
+    cd costume_retail_front
+    ```
+
+    Install dependencies:
+
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+
+    ```bash yarn
+    yarn install
+    ```
+
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Start the Frontend">
+    Run the Astro development server:
+
+    ```bash
+    npm run dev
+    ```
+
+    The frontend will be available at:
+
+    ```bash
+    http://localhost:4321
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    Open your browser and test the following:
+
+    <CardGroup cols={2}>
+      <Card title="Frontend Interface" icon="browser">
+        Visit `http://localhost:4321` to see the main dashboard with all module cards.
+      </Card>
+      <Card title="API Documentation" icon="book">
+        Visit `http://localhost:3000/api/docs` to explore the Swagger API documentation.
+      </Card>
+      <Card title="Health Check" icon="heart">
+        Visit `http://localhost:3000/api` to verify the backend is responding.
+      </Card>
+      <Card title="Test Endpoints" icon="code">
+        Try accessing `http://localhost:3000/api/prendas` to see the costumes endpoint.
+      </Card>
+    </CardGroup>
+  </Step>
+</Steps>
+
+## Testing the System
+
+### Using the Frontend
+
+The main dashboard (`http://localhost:4321`) provides access to five core modules:
+
+1. **Prendas (Costumes)** - Manage costume inventory
+2. **Clientes (Customers)** - Handle customer records
+3. **Empleados (Employees)** - Manage employee information
+4. **Servicios de Alquiler (Rental Services)** - Process rentals
+5. **Lavandería (Laundry)** - Track laundry queue
+
+### Using the API
+
+Test the API endpoints using Swagger at `http://localhost:3000/api/docs` or curl:
+
+<CodeGroup>
+```bash Create a Costume
+curl -X POST http://localhost:3000/api/prendas \
+  -H "Content-Type: application/json" \
+  -d '{
+    "referencia": "DSF001",
+    "nombre": "Traje de Superhéroe",
+    "descripcion": "Traje completo de superhéroe con capa",
+    "talla": "M",
+    "tipo": "Fantasía",
+    "precio_alquiler": 45.00
+  }'
+```
+
+```bash List All Costumes
+curl http://localhost:3000/api/prendas
+```
+
+```bash Get Costume by Reference
+curl http://localhost:3000/api/prendas/DSF001
+```
+
+```bash Search by Size
+curl http://localhost:3000/api/prendas/talla/M
+```
+</CodeGroup>
+
+## Default Configuration
+
+The system runs with these default settings:
+
+| Component | Setting | Value |
+|-----------|---------|-------|
+| Backend Port | `PORT` | 3000 |
+| Frontend Port | - | 4321 |
+| API Prefix | - | `/api` |
+| Swagger Docs | - | `/api/docs` |
+| Database Sync | `synchronize` | `true` (dev only) |
+| CORS | `origin` | `*` (all origins) |
+| Validation | `whitelist` | `true` |
+
+<Warning>
+**Development Only:** The backend enables CORS for all origins and automatic database synchronization in development mode. These should be configured properly for production use.
+</Warning>
+
+## Available Scripts
+
+### Backend Scripts
+
+```bash
+# Development with hot reload
+npm run start:dev
+
+# Production build
+npm run build
+npm run start:prod
+
+# Run tests
+npm run test
+npm run test:e2e
+
+# Linting and formatting
+npm run lint
+npm run format
+```
+
+### Frontend Scripts
+
+```bash
+# Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Common Issues
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="Database connection failed">
+    Make sure PostgreSQL is running and your `DATABASE_URL` in `.env` is correct. Verify credentials:
+
+    ```bash
+    psql -U postgres -d costume_retail
+    ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+
+  <Accordion title="Port already in use">
+    If port 3000 or 4321 is already in use, you can change them:
+
+    **Backend:** Edit `PORT` in `.env` file
+
+    **Frontend:** The Astro dev server will automatically use the next available port
+  </Accordion>
+
+  <Accordion title="Module not found errors">
+    Delete `node_modules` and reinstall:
+
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="CORS errors in frontend">
+    The backend is configured to allow all origins in development. If you still see CORS errors, verify the backend is running on port 3000 and update the frontend API calls if needed.
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Detailed Installation" icon="download" href="/installation">
+    Learn about production setup, environment variables, and deployment options.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore all available API endpoints and request/response schemas.
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+For production deployment, see the [Installation Guide](/installation) for security best practices and configuration recommendations.
 </Note>

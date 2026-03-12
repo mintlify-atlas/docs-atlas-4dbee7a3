@@ -1,0 +1,494 @@
+---
+title: Docker Deployment
+description: Deploy the Costume Retail System using Docker and Docker Compose
+icon: docker
+---
+
+## Docker Configuration
+
+The application includes a multi-stage Dockerfile optimized for production deployments.
+
+## Dockerfile Overview
+
+The `Dockerfile` uses a two-stage build process to minimize the final image size:
+
+```dockerfile
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Production
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
+```
+
+### Build Stages Explained
+
+<Steps>
+
+<Step title="Builder Stage">
+  **Base Image**: `node:20-alpine` (lightweight Linux distribution)
+  
+  - Copies package files and installs all dependencies (including dev)
+  - Copies source code
+  - Builds the NestJS application using `npm run build`
+  - Generates optimized JavaScript in `dist/` directory
+</Step>
+
+<Step title="Production Stage">
+  **Base Image**: Fresh `node:20-alpine` (no dev dependencies)
+  
+  - Installs only production dependencies (`--only=production`)
+  - Copies compiled code from builder stage
+  - Exposes port 3000
+  - Runs the compiled application with `node dist/main.js`
+</Step>
+
+</Steps>
+
+<Note>
+  The multi-stage build reduces the final image size by excluding source code, TypeScript compiler, and dev dependencies.
+</Note>
+
+## Building the Docker Image
+
+<Steps>
+
+<Step title="Navigate to Project Root">
+  ```bash
+  cd constume_retail_back
+  ```
+</Step>
+
+<Step title="Build the Image">
+  ```bash
+  docker build -t costume-retail-api:latest .
+  ```
+  
+  This creates a Docker image tagged as `costume-retail-api:latest`.
+</Step>
+
+<Step title="Verify the Build">
+  ```bash
+  docker images | grep costume-retail-api
+  ```
+  
+  You should see your newly created image with its size and creation time.
+</Step>
+
+</Steps>
+
+## Running the Container
+
+### Basic Run Command
+
+```bash
+docker run -d \
+  --name costume-retail \
+  -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+  -e NODE_ENV="production" \
+  costume-retail-api:latest
+```
+
+### With Environment File
+
+```bash
+docker run -d \
+  --name costume-retail \
+  -p 3000:3000 \
+  --env-file .env.production \
+  costume-retail-api:latest
+```
+
+### Command Options Explained
+
+<AccordionGroup>
+
+<Accordion title="-d (detached mode)">
+  Runs the container in the background, freeing up your terminal.
+</Accordion>
+
+<Accordion title="--name">
+  Assigns a friendly name to the container for easy reference.
+</Accordion>
+
+<Accordion title="-p 3000:3000">
+  Maps port 3000 on your host to port 3000 in the container.
+  
+  Format: `host_port:container_port`
+</Accordion>
+
+<Accordion title="-e (environment variables)">
+  Sets environment variables inside the container.
+  
+  Required: `DATABASE_URL`, `NODE_ENV`
+</Accordion>
+
+<Accordion title="--env-file">
+  Loads environment variables from a file instead of individual `-e` flags.
+</Accordion>
+
+</AccordionGroup>
+
+## Docker Compose Setup
+
+<Note>
+  Docker Compose allows you to run the API and PostgreSQL database together with a single command.
+</Note>
+
+### Create docker-compose.yml
+
+Create a `docker-compose.yml` file in your project root:
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: costume-retail-db
+    environment:
+      POSTGRES_DB: costume_retail
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-defaultpass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: costume-retail-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-defaultpass}@postgres:5432/costume_retail
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+### Environment Variables File
+
+Create a `.env` file for Docker Compose:
+
+```bash .env
+DB_PASSWORD=your_secure_password
+NODE_ENV=production
+```
+
+### Docker Compose Commands
+
+<CodeGroup>
+
+```bash Start Services
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# View API logs only
+docker-compose logs -f api
+```
+
+```bash Stop Services
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (deletes database data)
+docker-compose down -v
+```
+
+```bash Rebuild
+# Rebuild and restart after code changes
+docker-compose up -d --build
+
+# Rebuild specific service
+docker-compose up -d --build api
+```
+
+```bash Status
+# View running containers
+docker-compose ps
+
+# Execute commands in running container
+docker-compose exec api sh
+```
+
+</CodeGroup>
+
+## Production Deployment
+
+### Environment Variables
+
+For production, ensure these environment variables are set:
+
+<CodeGroup>
+
+```bash Required
+NODE_ENV=production
+DATABASE_URL=postgresql://user:password@host:5432/costume_retail
+PORT=3000
+```
+
+```bash Optional
+DB_HOST=your-db-host.com
+DB_PORT=5432
+DB_NAME=costume_retail
+DB_USER=your_user
+DB_PASSWORD=your_secure_password
+```
+
+</CodeGroup>
+
+<Warning>
+  **Never commit `.env` files to version control!** Add `.env` to your `.gitignore` file.
+</Warning>
+
+### Health Checks
+
+Add a health check to your Docker Compose configuration:
+
+```yaml
+api:
+  # ... other configuration
+  healthcheck:
+    test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 40s
+```
+
+### Logging Configuration
+
+Configure Docker logging to prevent disk space issues:
+
+```yaml
+api:
+  # ... other configuration
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+```
+
+## Container Management
+
+### View Logs
+
+```bash
+# View all logs
+docker logs costume-retail
+
+# Follow logs in real-time
+docker logs -f costume-retail
+
+# View last 100 lines
+docker logs --tail 100 costume-retail
+```
+
+### Access Container Shell
+
+```bash
+# Access running container
+docker exec -it costume-retail sh
+
+# Run commands inside container
+docker exec costume-retail node --version
+```
+
+### Stop and Remove
+
+```bash
+# Stop container
+docker stop costume-retail
+
+# Remove container
+docker rm costume-retail
+
+# Stop and remove in one command
+docker rm -f costume-retail
+```
+
+## Image Registry
+
+### Tag and Push to Docker Hub
+
+```bash
+# Tag image
+docker tag costume-retail-api:latest username/costume-retail-api:latest
+docker tag costume-retail-api:latest username/costume-retail-api:1.0.0
+
+# Login to Docker Hub
+docker login
+
+# Push image
+docker push username/costume-retail-api:latest
+docker push username/costume-retail-api:1.0.0
+```
+
+### Pull and Run from Registry
+
+```bash
+# Pull image
+docker pull username/costume-retail-api:latest
+
+# Run pulled image
+docker run -d -p 3000:3000 --env-file .env username/costume-retail-api:latest
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Container exits immediately">
+  **Check logs for errors:**
+  ```bash
+  docker logs costume-retail
+  ```
+  
+  **Common causes:**
+  - Missing `DATABASE_URL` environment variable
+  - Database connection refused
+  - Invalid Node.js syntax in code
+</Accordion>
+
+<Accordion title="Cannot connect to database">
+  **For Docker Compose:**
+  - Use service name as host: `postgres` (not `localhost`)
+  - Ensure `depends_on` is configured correctly
+  - Check database container is healthy: `docker-compose ps`
+  
+  **For standalone container:**
+  - Use host IP or external database URL
+  - Check network connectivity: `docker network inspect bridge`
+</Accordion>
+
+<Accordion title="Port already in use">
+  **Error**: `Bind for 0.0.0.0:3000 failed: port is already allocated`
+  
+  **Solutions:**
+  ```bash
+  # Use different host port
+  docker run -p 3001:3000 ...
+  
+  # Or find and stop conflicting container
+  docker ps
+  docker stop <container_id>
+  ```
+</Accordion>
+
+<Accordion title="Build fails with npm errors">
+  **Clear npm cache and rebuild:**
+  ```bash
+  docker build --no-cache -t costume-retail-api:latest .
+  ```
+  
+  **Check Node.js version compatibility:**
+  - Dockerfile uses `node:20-alpine`
+  - Ensure package.json specifies compatible Node version
+</Accordion>
+
+</AccordionGroup>
+
+## Performance Optimization
+
+<CardGroup cols={2}>
+
+<Card title="Multi-stage Build" icon="layer-group">
+  Reduces image size by 60-70% compared to single-stage builds
+</Card>
+
+<Card title="Alpine Linux" icon="mountain">
+  Minimal base image (~5MB) compared to full Node image (~900MB)
+</Card>
+
+<Card title="Production Dependencies" icon="box">
+  Only installs runtime dependencies, excludes dev tools
+</Card>
+
+<Card title="Layer Caching" icon="database">
+  Copies package files first to cache dependency installation
+</Card>
+
+</CardGroup>
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+```yaml .github/workflows/docker.yml
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker image
+        run: docker build -t costume-retail-api:${{ github.sha }} .
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Push image
+        run: |
+          docker tag costume-retail-api:${{ github.sha }} username/costume-retail-api:latest
+          docker push username/costume-retail-api:latest
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Configuration" icon="gear" href="/deployment/configuration">
+  Configure environment variables and API settings
+</Card>
+
+<Card title="Database Setup" icon="database" href="/deployment/database">
+  Set up PostgreSQL and configure TypeORM
+</Card>
+
+<Card title="API Reference" icon="code" href="/api/overview">
+  Explore available API endpoints
+</Card>
+
+<Card title="Introduction" icon="book" href="/introduction">
+  Learn about the system architecture and overview
+</Card>
+
+</CardGroup>

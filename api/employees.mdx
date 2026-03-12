@@ -1,0 +1,222 @@
+---
+title: 'Employees API'
+description: 'Endpoints for managing employee records'
+---
+
+## Create Employee
+
+<api-endpoint method="POST" path="/api/empleados" />
+
+Register a new employee in the system.
+
+### Request Body
+
+<ParamField body="numero_identificacion" type="string" required>
+  Employee's unique identification number (e.g., ID card, passport)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Employee's first name
+</ParamField>
+
+<ParamField body="apellido" type="string" required>
+  Employee's last name
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Employee's phone number
+</ParamField>
+
+<ParamField body="email" type="string">
+  Employee's email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="cargo" type="string" required>
+  Employee's job position or role (e.g., "Vendedor", "Gerente", "Asistente")
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/empleados \
+  -H "Content-Type: application/json" \
+  -d '{
+    "numero_identificacion": "9876543210",
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "telefono": "+57 320 555 1234",
+    "email": "juan.perez@costumestore.com",
+    "cargo": "Vendedor"
+  }'
+```
+
+### Response
+
+<ResponseField name="numero_identificacion" type="string">
+  Employee's identification number
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  First name
+</ResponseField>
+
+<ResponseField name="apellido" type="string">
+  Last name
+</ResponseField>
+
+<ResponseField name="telefono" type="string">
+  Phone number
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Email address
+</ResponseField>
+
+<ResponseField name="cargo" type="string">
+  Job position or role
+</ResponseField>
+
+```json
+{
+  "numero_identificacion": "9876543210",
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "telefono": "+57 320 555 1234",
+  "email": "juan.perez@costumestore.com",
+  "cargo": "Vendedor"
+}
+```
+
+---
+
+## List All Employees
+
+<api-endpoint method="GET" path="/api/empleados" />
+
+Retrieve a list of all registered employees.
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/empleados
+```
+
+### Response
+
+Returns an array of employee objects:
+
+```json
+[
+  {
+    "numero_identificacion": "9876543210",
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "telefono": "+57 320 555 1234",
+    "email": "juan.perez@costumestore.com",
+    "cargo": "Vendedor"
+  },
+  {
+    "numero_identificacion": "5555555555",
+    "nombre": "Ana",
+    "apellido": "Martínez",
+    "telefono": "+57 310 777 8888",
+    "email": "ana.martinez@costumestore.com",
+    "cargo": "Gerente"
+  }
+]
+```
+
+---
+
+## Get Employee by ID
+
+<api-endpoint method="GET" path="/api/empleados/:id" />
+
+Retrieve details of a specific employee by their identification number.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Employee's unique identification number
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/empleados/9876543210
+```
+
+### Response
+
+```json
+{
+  "numero_identificacion": "9876543210",
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "telefono": "+57 320 555 1234",
+  "email": "juan.perez@costumestore.com",
+  "cargo": "Vendedor"
+}
+```
+
+### Error Response
+
+If the employee is not found:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Empleado con identificación 9876543210 no encontrado",
+  "error": "Not Found"
+}
+```
+
+---
+
+## Validation Rules
+
+### Email Format
+
+The `email` field must be a valid email address format:
+
+<CodeGroup>
+```json Valid
+{
+  "email": "employee@costumestore.com"
+}
+```
+
+```json Invalid
+{
+  "email": "invalid-email-format"
+}
+```
+</CodeGroup>
+
+### Required Fields
+
+All fields except `email` are required. Attempting to create an employee without required fields will result in a validation error:
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "numero_identificacion should not be empty",
+    "nombre should not be empty",
+    "cargo should not be empty"
+  ],
+  "error": "Bad Request"
+}
+```
+
+---
+
+## Common Job Positions
+
+Typical values for the `cargo` field include:
+
+- **Vendedor** - Sales associate who processes rentals
+- **Gerente** - Store manager
+- **Asistente** - Assistant or support staff
+- **Supervisor** - Shift supervisor
+- **Encargado de Lavandería** - Laundry coordinator

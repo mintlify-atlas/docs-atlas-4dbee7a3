@@ -1,0 +1,352 @@
+---
+title: Database Setup
+description: Configure PostgreSQL for the Costume Retail System
+icon: database
+---
+
+## PostgreSQL Requirements
+
+The Costume Retail System uses PostgreSQL as its primary database with TypeORM as the ORM layer.
+
+<Note>
+  **Minimum Version**: PostgreSQL 12 or higher recommended
+</Note>
+
+## Database Connection
+
+### Connection URL Format
+
+The application uses a PostgreSQL connection URL via the `DATABASE_URL` environment variable:
+
+```
+postgresql://[username]:[password]@[host]:[port]/[database_name]
+```
+
+### Connection Examples
+
+<CodeGroup>
+
+```bash Local Development
+DATABASE_URL=postgresql://postgres:password@localhost:5432/costume_retail
+```
+
+```bash Docker Compose
+DATABASE_URL=postgresql://postgres:password@postgres:5432/costume_retail
+```
+
+```bash Production (with SSL)
+DATABASE_URL=postgresql://user:pass@prod-host.com:5432/costume_retail?sslmode=require
+```
+
+</CodeGroup>
+
+## TypeORM Configuration
+
+The database configuration is located in `src/app.module.ts` and automatically adapts to the environment:
+
+```typescript
+TypeOrmModule.forRootAsync({
+  imports: [ConfigModule],
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService) => ({
+    type: 'postgres',
+    url: configService.get<string>('DATABASE_URL'),
+    entities: [__dirname + '/**/*.entity{.ts,.js}'],
+    synchronize: configService.get<string>('NODE_ENV') !== 'production',
+    ssl:
+      configService.get<string>('NODE_ENV') === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
+    logging: configService.get<string>('NODE_ENV') !== 'production',
+  }),
+})
+```
+
+## Installation
+
+<Steps>
+
+<Step title="Install PostgreSQL">
+  <Tabs>
+    <Tab title="macOS">
+      ```bash
+      brew install postgresql@16
+      brew services start postgresql@16
+      ```
+    </Tab>
+    
+    <Tab title="Ubuntu/Debian">
+      ```bash
+      sudo apt update
+      sudo apt install postgresql postgresql-contrib
+      sudo systemctl start postgresql
+      ```
+    </Tab>
+    
+    <Tab title="Docker">
+      ```bash
+      docker run -d \
+        --name postgres \
+        -e POSTGRES_PASSWORD=password \
+        -e POSTGRES_DB=costume_retail \
+        -p 5432:5432 \
+        postgres:16-alpine
+      ```
+    </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Create Database">
+  ```bash
+  # Connect to PostgreSQL
+  psql -U postgres
+  
+  # Create database
+  CREATE DATABASE costume_retail;
+  
+  # Create user (optional)
+  CREATE USER costume_user WITH PASSWORD 'your_password';
+  GRANT ALL PRIVILEGES ON DATABASE costume_retail TO costume_user;
+  
+  # Exit
+  \q
+  ```
+</Step>
+
+<Step title="Configure Connection">
+  Add the database URL to your `.env` file:
+  
+  ```bash
+  DATABASE_URL=postgresql://postgres:password@localhost:5432/costume_retail
+  ```
+</Step>
+
+<Step title="Verify Connection">
+  Start the application to test the connection:
+  
+  ```bash
+  npm run start:dev
+  ```
+  
+  You should see connection logs in development mode.
+</Step>
+
+</Steps>
+
+## Database Entities
+
+The application automatically loads all entity files matching the pattern:
+
+```typescript
+entities: [__dirname + '/**/*.entity{.ts,.js}']
+```
+
+### Main Entities
+
+<CardGroup cols={2}>
+
+<Card title="Prendas" icon="shirt">
+  Costume/garment inventory management
+</Card>
+
+<Card title="Clientes" icon="users">
+  Customer information and profiles
+</Card>
+
+<Card title="Empleados" icon="user-tie">
+  Employee records and authentication
+</Card>
+
+<Card title="Servicios" icon="handshake">
+  Rental services and transactions
+</Card>
+
+<Card title="Lavanderia" icon="soap">
+  Laundry tracking and management
+</Card>
+
+</CardGroup>
+
+## Synchronization
+
+<Warning>
+  **Critical**: Synchronization behavior changes based on environment!
+</Warning>
+
+### Development Mode
+
+```typescript
+synchronize: true  // When NODE_ENV !== 'production'
+```
+
+- Automatically creates/updates database tables
+- Matches entity definitions to database schema
+- Useful for rapid development
+- **Never use in production!**
+
+### Production Mode
+
+```typescript
+synchronize: false  // When NODE_ENV === 'production'
+```
+
+- Prevents automatic schema changes
+- Requires manual migrations
+- Protects against accidental data loss
+- **Always use in production!**
+
+## SSL Configuration
+
+SSL is automatically configured based on the environment:
+
+<CodeGroup>
+
+```typescript Development
+ssl: false  // No SSL for local development
+```
+
+```typescript Production
+ssl: { 
+  rejectUnauthorized: false  // Accept self-signed certificates
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Most cloud database providers (AWS RDS, Heroku Postgres, etc.) require SSL connections in production.
+</Note>
+
+## Logging
+
+SQL query logging is environment-dependent:
+
+```typescript
+logging: configService.get<string>('NODE_ENV') !== 'production'
+```
+
+- **Development**: All SQL queries logged to console
+- **Production**: Logging disabled for performance
+
+### Enable Production Logging
+
+To enable specific logging in production, modify the TypeORM config:
+
+```typescript
+logging: ['error', 'warn', 'migration']  // Log only errors and migrations
+```
+
+## Connection Pooling
+
+TypeORM uses the `pg` driver which includes built-in connection pooling. Default settings:
+
+- **Max connections**: 10
+- **Idle timeout**: 10000ms
+
+### Custom Pool Configuration
+
+Add extra options to the TypeORM configuration:
+
+```typescript
+{
+  type: 'postgres',
+  url: configService.get<string>('DATABASE_URL'),
+  // ... other options
+  extra: {
+    max: 20,              // Maximum pool size
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  },
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Connection refused error">
+  **Symptoms**: `ECONNREFUSED` or `connection refused`
+  
+  **Solutions**:
+  - Verify PostgreSQL is running: `pg_isready`
+  - Check the host and port in `DATABASE_URL`
+  - Ensure firewall allows connections on port 5432
+  - For Docker, use container name instead of `localhost`
+</Accordion>
+
+<Accordion title="Authentication failed">
+  **Symptoms**: `password authentication failed`
+  
+  **Solutions**:
+  - Verify username and password in `DATABASE_URL`
+  - Check PostgreSQL `pg_hba.conf` authentication settings
+  - Ensure user has proper database permissions
+  - Reset user password: `ALTER USER username PASSWORD 'newpass';`
+</Accordion>
+
+<Accordion title="SSL/TLS connection error">
+  **Symptoms**: `no pg_hba.conf entry for host` or `SSL required`
+  
+  **Solutions**:
+  - Add `?sslmode=require` to `DATABASE_URL`
+  - Set `ssl: { rejectUnauthorized: false }` for self-signed certificates
+  - Check cloud provider SSL requirements
+</Accordion>
+
+<Accordion title="Table doesn't exist">
+  **Symptoms**: `relation "table_name" does not exist`
+  
+  **Solutions**:
+  - In development: Ensure `NODE_ENV=development` for auto-sync
+  - In production: Run migrations manually
+  - Verify entity files are in correct location
+  - Check entity pattern: `**/*.entity{.ts,.js}`
+</Accordion>
+
+</AccordionGroup>
+
+## Database Backup
+
+### Manual Backup
+
+```bash
+# Create backup
+pg_dump -U postgres costume_retail > backup.sql
+
+# Restore backup
+psql -U postgres costume_retail < backup.sql
+```
+
+### Automated Backup
+
+```bash
+# Daily backup script
+#!/bin/bash
+DATE=$(date +%Y%m%d)
+pg_dump -U postgres costume_retail | gzip > backup_$DATE.sql.gz
+
+# Keep only last 7 days
+find . -name "backup_*.sql.gz" -mtime +7 -delete
+```
+
+## Performance Tips
+
+<CardGroup cols={2}>
+
+<Card title="Indexes" icon="bolt">
+  Ensure foreign keys and frequently queried columns have indexes
+</Card>
+
+<Card title="Connection Pool" icon="water">
+  Adjust pool size based on concurrent users
+</Card>
+
+<Card title="Query Optimization" icon="gauge">
+  Use query logging in dev to identify slow queries
+</Card>
+
+<Card title="Regular Maintenance" icon="wrench">
+  Run `VACUUM` and `ANALYZE` periodically
+</Card>
+
+</CardGroup>

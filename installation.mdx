@@ -1,0 +1,622 @@
+---
+title: Installation
+description: Detailed installation and configuration guide for Costume Retail System
+---
+
+## Prerequisites
+
+Before installing the Costume Retail System, ensure you have the following requirements:
+
+### Required Software
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    **Version 20 or higher**
+    
+    Download from [nodejs.org](https://nodejs.org/)
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    **Version 12 or higher**
+    
+    Download from [postgresql.org](https://www.postgresql.org/)
+  </Card>
+  <Card title="npm/yarn/pnpm" icon="box">
+    **Package Manager**
+    
+    Included with Node.js (npm)
+  </Card>
+  <Card title="Git" icon="git">
+    **Version Control**
+    
+    Download from [git-scm.com](https://git-scm.com/)
+  </Card>
+</CardGroup>
+
+### System Requirements
+
+- **Memory:** Minimum 2GB RAM (4GB recommended)
+- **Storage:** 500MB free disk space
+- **OS:** Linux, macOS, or Windows
+- **Browser:** Modern browser (Chrome, Firefox, Safari, Edge)
+
+<Note>
+For production deployments, consider using cloud-hosted PostgreSQL services like Supabase, AWS RDS, or DigitalOcean for better reliability and scalability.
+</Note>
+
+## Backend Installation
+
+### Step 1: Clone the Repository
+
+```bash
+git clone <repository-url> costume_retail_back
+cd costume_retail_back
+```
+
+### Step 2: Install Dependencies
+
+Choose your preferred package manager:
+
+<CodeGroup>
+```bash npm
+npm install
+```
+
+```bash yarn
+yarn install
+```
+
+```bash pnpm
+pnpm install
+```
+</CodeGroup>
+
+This installs the following key dependencies:
+
+**Core Framework:**
+- `@nestjs/core` (^11.0.1) - NestJS framework core
+- `@nestjs/common` (^11.0.1) - Common utilities and decorators
+- `@nestjs/platform-express` (^11.0.1) - Express platform adapter
+
+**Database:**
+- `@nestjs/typeorm` (^11.0.0) - TypeORM integration
+- `typeorm` (^0.3.28) - ORM for TypeScript
+- `pg` (^8.20.0) - PostgreSQL client
+
+**Validation:**
+- `class-validator` (^0.14.4) - Decorator-based validation
+- `class-transformer` (^0.5.1) - Object transformation
+
+**Documentation:**
+- `@nestjs/swagger` (^11.2.6) - OpenAPI/Swagger integration
+- `swagger-ui-express` (^5.0.1) - Swagger UI
+
+### Step 3: Database Setup
+
+#### Option A: Local PostgreSQL
+
+1. **Create the database:**
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE costume_retail;
+
+# Create user (optional)
+CREATE USER costume_admin WITH PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE costume_retail TO costume_admin;
+
+# Exit
+\q
+```
+
+2. **Test connection:**
+
+```bash
+psql -U postgres -d costume_retail -c "SELECT version();"
+```
+
+#### Option B: Cloud PostgreSQL (Supabase)
+
+1. Create a free account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to Project Settings > Database
+4. Copy the connection string from the "Connection string" section
+5. Use the URI format in your `.env` file
+
+### Step 4: Environment Configuration
+
+Create your environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+
+```bash
+# Database Configuration
+# Format: postgresql://[user]:[password]@[host]:[port]/[database]
+
+# Local PostgreSQL
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/costume_retail
+
+# Or Supabase (cloud)
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT_ID].supabase.co:5432/postgres
+
+# Application Environment
+# Options: development | production
+NODE_ENV=development
+
+# Server Port
+# Default: 3000
+PORT=3000
+```
+
+<Warning>
+**Security:** Never commit your `.env` file to version control. The `.gitignore` file already excludes it.
+</Warning>
+
+### Step 5: Database Schema
+
+The backend uses TypeORM entities to define the database schema. In development mode, the schema is automatically synchronized:
+
+```typescript
+// app.module.ts configuration
+TypeOrmModule.forRootAsync({
+  useFactory: (configService: ConfigService) => ({
+    type: 'postgres',
+    url: configService.get<string>('DATABASE_URL'),
+    entities: [__dirname + '/**/*.entity{.ts,.js}'],
+    // Auto-sync in development only
+    synchronize: configService.get<string>('NODE_ENV') !== 'production',
+    ssl: configService.get<string>('NODE_ENV') === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
+  }),
+})
+```
+
+The following tables will be created automatically:
+
+- `clientes` - Customer records
+- `empleados` - Employee records
+- `prendas` - Costume inventory
+- `servicios_alquiler` - Rental services
+- `servicio_prendas` - Junction table for rentals and costumes
+- `lista_lavanderia` - Laundry queue
+
+<Note>
+**Production:** Disable `synchronize` in production and use migrations instead for better control over schema changes.
+</Note>
+
+### Step 6: Run the Backend
+
+<Tabs>
+  <Tab title="Development">
+    Start the development server with hot reload:
+
+    ```bash
+    npm run start:dev
+    ```
+
+    Output:
+    ```bash
+    [Nest] 12345  - 03/12/2026, 10:30:00 AM     LOG [NestFactory] Starting Nest application...
+    [Nest] 12345  - 03/12/2026, 10:30:00 AM     LOG [InstanceLoader] AppModule dependencies initialized
+    [Nest] 12345  - 03/12/2026, 10:30:01 AM     LOG [RoutesResolver] AppController {/api}:
+    [Nest] 12345  - 03/12/2026, 10:30:01 AM     LOG [NestApplication] Nest application successfully started
+    Application running on: http://localhost:3000
+    Swagger docs: http://localhost:3000/api/docs
+    ```
+  </Tab>
+
+  <Tab title="Production">
+    Build and run the production server:
+
+    ```bash
+    # Build the application
+    npm run build
+
+    # Start production server
+    npm run start:prod
+    ```
+
+    Or use PM2 for process management:
+
+    ```bash
+    # Install PM2
+    npm install -g pm2
+
+    # Start with PM2
+    pm2 start dist/main.js --name "costume-retail-api"
+
+    # Save PM2 configuration
+    pm2 save
+
+    # Set PM2 to start on boot
+    pm2 startup
+    ```
+  </Tab>
+
+  <Tab title="Docker">
+    Build and run using Docker:
+
+    ```bash
+    # Build the image
+    docker build -t costume-retail-backend .
+
+    # Run the container
+    docker run -d \
+      --name costume-retail-api \
+      -p 3000:3000 \
+      -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
+      -e NODE_ENV="production" \
+      costume-retail-backend
+    ```
+
+    The Dockerfile is optimized with multi-stage builds:
+
+    ```dockerfile
+    FROM node:20-alpine AS builder
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm ci
+    COPY . .
+    RUN npm run build
+
+    FROM node:20-alpine
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm ci --only=production
+    COPY --from=builder /app/dist ./dist
+    EXPOSE 3000
+    CMD ["node", "dist/main.js"]
+    ```
+  </Tab>
+</Tabs>
+
+### Step 7: Verify Backend Installation
+
+Test the following endpoints:
+
+<Steps>
+  <Step title="Health Check">
+    ```bash
+    curl http://localhost:3000/api
+    ```
+
+    Expected response: `Hello World!`
+  </Step>
+
+  <Step title="Swagger Documentation">
+    Open browser and navigate to:
+    ```
+    http://localhost:3000/api/docs
+    ```
+
+    You should see the interactive API documentation with all endpoints.
+  </Step>
+
+  <Step title="Test Endpoints">
+    ```bash
+    # List all costumes
+    curl http://localhost:3000/api/prendas
+
+    # Expected: [] (empty array initially)
+    ```
+  </Step>
+</Steps>
+
+## Frontend Installation
+
+### Step 1: Clone the Repository
+
+```bash
+git clone <repository-url> costume_retail_front
+cd costume_retail_front
+```
+
+### Step 2: Install Dependencies
+
+<CodeGroup>
+```bash npm
+npm install
+```
+
+```bash yarn
+yarn install
+```
+
+```bash pnpm
+pnpm install
+```
+</CodeGroup>
+
+This installs:
+- `astro` (^5.17.1) - Astro framework
+- Bootstrap Icons (via CDN in layouts)
+- TypeScript support
+
+### Step 3: Configure API Endpoint
+
+The frontend makes API calls to the backend. If your backend is not running on `localhost:3000`, update the API URLs in the Astro pages.
+
+By default, the frontend expects the backend at:
+```
+http://localhost:3000/api
+```
+
+For production, update the API base URL in your deployment configuration.
+
+### Step 4: Run the Frontend
+
+<Tabs>
+  <Tab title="Development">
+    Start the Astro development server:
+
+    ```bash
+    npm run dev
+    ```
+
+    Output:
+    ```bash
+    🚀 astro v5.17.1 started in 150ms
+
+    ┃ Local    http://localhost:4321/
+    ┃ Network  use --host to expose
+    ```
+
+    The site will be available at `http://localhost:4321`
+  </Tab>
+
+  <Tab title="Production Build">
+    Build the static site:
+
+    ```bash
+    npm run build
+    ```
+
+    The build output will be in the `dist/` directory. Preview it:
+
+    ```bash
+    npm run preview
+    ```
+  </Tab>
+
+  <Tab title="Static Hosting">
+    Deploy the `dist/` folder to any static hosting provider:
+
+    **Netlify:**
+    ```toml
+    # netlify.toml
+    [build]
+      command = "npm run build"
+      publish = "dist"
+    ```
+
+    **Vercel:**
+    ```json
+    {
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
+    }
+    ```
+
+    **nginx:**
+    ```nginx
+    server {
+      listen 80;
+      server_name example.com;
+      root /var/www/costume_retail_front/dist;
+      index index.html;
+
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Step 5: Verify Frontend Installation
+
+<Steps>
+  <Step title="Access Dashboard">
+    Open `http://localhost:4321` in your browser. You should see the main dashboard with five module cards:
+    - Prendas (Costumes)
+    - Clientes (Customers)
+    - Empleados (Employees)
+    - Servicios de Alquiler (Rental Services)
+    - Lavandería (Laundry)
+  </Step>
+
+  <Step title="Test Navigation">
+    Click on any module card to access that section's page.
+  </Step>
+
+  <Step title="Check API Connection">
+    Make sure the backend is running. The frontend pages will fetch data from the API endpoints.
+  </Step>
+</Steps>
+
+## Production Configuration
+
+### Backend Security
+
+For production deployment, update the following configurations:
+
+#### 1. CORS Configuration
+
+Edit `src/main.ts` to restrict allowed origins:
+
+```typescript
+// Replace wildcard with specific origins
+app.enableCors({
+  origin: ['https://yourdomain.com', 'https://www.yourdomain.com'],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: 'Content-Type, Accept, Authorization',
+  credentials: true,
+});
+```
+
+#### 2. Database Configuration
+
+Disable `synchronize` in production:
+
+```typescript
+// app.module.ts
+synchronize: false, // Always false in production
+```
+
+Use migrations for schema changes:
+
+```bash
+# Generate migration
+npm run typeorm migration:generate -- -n MigrationName
+
+# Run migrations
+npm run typeorm migration:run
+```
+
+#### 3. Environment Variables
+
+Set production environment variables:
+
+```bash
+NODE_ENV=production
+DATABASE_URL=postgresql://user:password@host:5432/db
+PORT=3000
+```
+
+#### 4. SSL/TLS
+
+Enable SSL for PostgreSQL connections in production:
+
+```typescript
+ssl: {
+  rejectUnauthorized: false // Or true with proper certificates
+}
+```
+
+### Deployment Options
+
+<CardGroup cols={2}>
+  <Card title="Render" icon="cloud">
+    Use the included `render.yaml` for easy deployment to Render.com.
+  </Card>
+  <Card title="Docker" icon="docker">
+    Use the included `Dockerfile` for containerized deployment.
+  </Card>
+  <Card title="VPS" icon="server">
+    Deploy to any VPS using PM2 or systemd for process management.
+  </Card>
+  <Card title="Cloud Platforms" icon="cloud-arrow-up">
+    Deploy to AWS, Google Cloud, Azure, or DigitalOcean.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to database">
+    **Check database URL format:**
+    ```bash
+    postgresql://[user]:[password]@[host]:[port]/[database]
+    ```
+
+    **Verify PostgreSQL is running:**
+    ```bash
+    # Check PostgreSQL status
+    sudo systemctl status postgresql
+
+    # Or on macOS with Homebrew
+    brew services list | grep postgresql
+    ```
+
+    **Test connection manually:**
+    ```bash
+    psql -U postgres -d costume_retail
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    **Find process using the port:**
+    ```bash
+    # Linux/macOS
+    lsof -i :3000
+
+    # Windows
+    netstat -ano | findstr :3000
+    ```
+
+    **Change port in .env:**
+    ```bash
+    PORT=3001
+    ```
+  </Accordion>
+
+  <Accordion title="Module resolution errors">
+    **Clear cache and reinstall:**
+    ```bash
+    # Remove node_modules and lock file
+    rm -rf node_modules package-lock.json
+
+    # Reinstall
+    npm install
+
+    # Clear NestJS cache
+    rm -rf dist
+    npm run build
+    ```
+  </Accordion>
+
+  <Accordion title="TypeORM synchronization issues">
+    **Reset database (development only):**
+    ```bash
+    # Drop and recreate database
+    psql -U postgres -c "DROP DATABASE costume_retail;"
+    psql -U postgres -c "CREATE DATABASE costume_retail;"
+    ```
+
+    **Or use migrations in production:**
+    ```bash
+    npm run typeorm migration:run
+    ```
+  </Accordion>
+
+  <Accordion title="Swagger documentation not loading">
+    **Verify Swagger is enabled:**
+    Check `src/main.ts` has:
+    ```typescript
+    SwaggerModule.setup('api/docs', app, document);
+    ```
+
+    **Access the correct URL:**
+    ```
+    http://localhost:3000/api/docs
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore all available API endpoints and schemas.
+  </Card>
+  <Card title="Configuration Guide" icon="gear" href="/deployment/configuration">
+    Advanced configuration options and settings.
+  </Card>
+  <Card title="Database Setup" icon="database" href="/deployment/database">
+    Learn about the database setup and configuration.
+  </Card>
+  <Card title="Docker Deployment" icon="rocket" href="/deployment/docker">
+    Production deployment guides and best practices.
+  </Card>
+</CardGroup>
+
+<Note>
+For additional support or questions, refer to the [NestJS documentation](https://docs.nestjs.com) and [Astro documentation](https://docs.astro.build).
+</Note>

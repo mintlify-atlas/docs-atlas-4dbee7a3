@@ -1,0 +1,99 @@
+---
+title: 'API Overview'
+description: 'Introduction to the Costume Retail System API'
+---
+
+## Base URL
+
+All API endpoints are prefixed with `/api`:
+
+```
+http://localhost:3000/api
+```
+
+## API Documentation
+
+Interactive Swagger documentation is available at:
+
+```
+http://localhost:3000/api/docs
+```
+
+## Request Format
+
+All requests and responses use JSON format. Include the following header in your requests:
+
+```
+Content-Type: application/json
+```
+
+## Validation
+
+The API uses automatic validation with the following behaviors:
+
+- **Whitelist**: Only properties defined in DTOs are accepted
+- **ForbidNonWhitelisted**: Extra properties will cause a 400 Bad Request error
+- **Transform**: Request data is automatically transformed to the correct types
+
+## Response Format
+
+### Success Response
+
+Successful requests return the requested data directly:
+
+```json
+{
+  "referencia": "PRD001",
+  "nombre": "Vestido de Gala",
+  "talla": "M",
+  "estado": "DISPONIBLE",
+  "precio_alquiler": 50.00
+}
+```
+
+### Error Response
+
+Validation errors return a structured error object:
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "nombre should not be empty",
+    "precio_alquiler must be a number conforming to the specified constraints"
+  ],
+  "error": "Bad Request"
+}
+```
+
+## CORS Configuration
+
+The API accepts requests from any origin (`*`) with the following allowed methods:
+
+- GET
+- HEAD
+- PUT
+- PATCH
+- POST
+- DELETE
+- OPTIONS
+
+## Available Resources
+
+<CardGroup cols={2}>
+  <Card title="Costumes" icon="shirt" href="/api/costumes">
+    Manage costume inventory, check availability, and filter by size
+  </Card>
+  <Card title="Customers" icon="users" href="/api/customers">
+    Register and manage customer information
+  </Card>
+  <Card title="Employees" icon="user-tie" href="/api/employees">
+    Manage employee records and assignments
+  </Card>
+  <Card title="Rentals" icon="calendar" href="/api/rentals">
+    Create and track rental services
+  </Card>
+  <Card title="Laundry" icon="washing-machine" href="/api/laundry">
+    Manage laundry queue with FIFO priority
+  </Card>
+</CardGroup>

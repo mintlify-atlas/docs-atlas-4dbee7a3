@@ -1,0 +1,379 @@
+---
+title: 'Rentals API'
+description: 'Endpoints for managing costume rental services'
+---
+
+## Create Rental Service
+
+<api-endpoint method="POST" path="/api/servicios" />
+
+Register a new costume rental service. This creates a rental record linking a customer, employee, and one or more costumes.
+
+### Request Body
+
+<ParamField body="cliente_id" type="string" required>
+  Customer's identification number (must exist in the system)
+</ParamField>
+
+<ParamField body="empleado_id" type="string" required>
+  Employee's identification number who is processing the rental (must exist in the system)
+</ParamField>
+
+<ParamField body="referencias_prendas" type="array" required>
+  Array of costume reference codes to include in the rental. Must contain at least one reference.
+  
+  Each reference must be a non-empty string and must exist in the costume inventory.
+</ParamField>
+
+<ParamField body="fecha_alquiler" type="string" required>
+  Date when the customer will pick up the costumes. Must be in ISO 8601 date format (YYYY-MM-DD).
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/servicios \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cliente_id": "1234567890",
+    "empleado_id": "9876543210",
+    "referencias_prendas": ["PRD001", "PRD005"],
+    "fecha_alquiler": "2026-03-20"
+  }'
+```
+
+### Response
+
+<ResponseField name="numero_servicio" type="number">
+  Auto-generated unique service number
+</ResponseField>
+
+<ResponseField name="cliente" type="object">
+  Customer information object
+  
+  <Expandable title="Cliente Properties">
+    <ResponseField name="numero_identificacion" type="string">
+      Customer ID
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      First name
+    </ResponseField>
+    <ResponseField name="apellido" type="string">
+      Last name
+    </ResponseField>
+    <ResponseField name="telefono" type="string">
+      Phone number
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      Email address
+    </ResponseField>
+    <ResponseField name="direccion" type="string">
+      Physical address
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="empleado" type="object">
+  Employee information object
+  
+  <Expandable title="Empleado Properties">
+    <ResponseField name="numero_identificacion" type="string">
+      Employee ID
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      First name
+    </ResponseField>
+    <ResponseField name="apellido" type="string">
+      Last name
+    </ResponseField>
+    <ResponseField name="cargo" type="string">
+      Job position
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="prendas" type="array">
+  Array of costume objects included in the rental
+  
+  <Expandable title="Prenda Properties">
+    <ResponseField name="referencia" type="string">
+      Costume reference code
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Costume name
+    </ResponseField>
+    <ResponseField name="talla" type="string">
+      Size
+    </ResponseField>
+    <ResponseField name="estado" type="string">
+      Current state (will be ALQUILADA after rental creation)
+    </ResponseField>
+    <ResponseField name="precio_alquiler" type="number">
+      Rental price
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="fecha_alquiler" type="string">
+  Rental date (YYYY-MM-DD format)
+</ResponseField>
+
+<ResponseField name="fecha_solicitud" type="string">
+  Timestamp when the service was created (ISO 8601 format)
+</ResponseField>
+
+```json
+{
+  "numero_servicio": 1,
+  "cliente": {
+    "numero_identificacion": "1234567890",
+    "nombre": "María",
+    "apellido": "González",
+    "telefono": "+57 300 123 4567",
+    "email": "maria.gonzalez@example.com",
+    "direccion": "Calle 123 #45-67, Bogotá"
+  },
+  "empleado": {
+    "numero_identificacion": "9876543210",
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "cargo": "Vendedor"
+  },
+  "prendas": [
+    {
+      "referencia": "PRD001",
+      "nombre": "Vestido de Gala",
+      "talla": "M",
+      "estado": "ALQUILADA",
+      "precio_alquiler": 50.00
+    },
+    {
+      "referencia": "PRD005",
+      "nombre": "Smoking",
+      "talla": "M",
+      "estado": "ALQUILADA",
+      "precio_alquiler": 60.00
+    }
+  ],
+  "fecha_alquiler": "2026-03-20",
+  "fecha_solicitud": "2026-03-12T14:30:00.000Z"
+}
+```
+
+---
+
+## Get Active Rentals by Customer
+
+<api-endpoint method="GET" path="/api/servicios/cliente/:clienteId" />
+
+Retrieve all active rental services for a specific customer. Returns only services where the rental date is today or in the future, ordered by rental date.
+
+### Path Parameters
+
+<ParamField path="clienteId" type="string" required>
+  Customer's identification number
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/servicios/cliente/1234567890
+```
+
+### Response
+
+Returns an array of active rental service objects:
+
+```json
+[
+  {
+    "numero_servicio": 1,
+    "cliente": {
+      "numero_identificacion": "1234567890",
+      "nombre": "María",
+      "apellido": "González"
+    },
+    "empleado": {
+      "numero_identificacion": "9876543210",
+      "nombre": "Juan",
+      "apellido": "Pérez"
+    },
+    "prendas": [
+      {
+        "referencia": "PRD001",
+        "nombre": "Vestido de Gala",
+        "precio_alquiler": 50.00
+      }
+    ],
+    "fecha_alquiler": "2026-03-20",
+    "fecha_solicitud": "2026-03-12T14:30:00.000Z"
+  }
+]
+```
+
+---
+
+## Get Rentals by Date
+
+<api-endpoint method="GET" path="/api/servicios/fecha/:fecha" />
+
+Retrieve all rental services scheduled for a specific date.
+
+### Path Parameters
+
+<ParamField path="fecha" type="string" required>
+  Date to query in YYYY-MM-DD format
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/servicios/fecha/2026-03-20
+```
+
+### Response
+
+Returns an array of rental services scheduled for the specified date:
+
+```json
+[
+  {
+    "numero_servicio": 1,
+    "cliente": {
+      "numero_identificacion": "1234567890",
+      "nombre": "María",
+      "apellido": "González"
+    },
+    "prendas": [
+      {
+        "referencia": "PRD001",
+        "nombre": "Vestido de Gala"
+      }
+    ],
+    "fecha_alquiler": "2026-03-20"
+  },
+  {
+    "numero_servicio": 5,
+    "cliente": {
+      "numero_identificacion": "9999999999",
+      "nombre": "Pedro",
+      "apellido": "López"
+    },
+    "prendas": [
+      {
+        "referencia": "PRD010",
+        "nombre": "Traje Medieval"
+      }
+    ],
+    "fecha_alquiler": "2026-03-20"
+  }
+]
+```
+
+---
+
+## Get Rental by Service Number
+
+<api-endpoint method="GET" path="/api/servicios/:numero" />
+
+Retrieve details of a specific rental service by its service number.
+
+### Path Parameters
+
+<ParamField path="numero" type="number" required>
+  Service number (must be a positive integer)
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/servicios/1
+```
+
+### Response
+
+```json
+{
+  "numero_servicio": 1,
+  "cliente": {
+    "numero_identificacion": "1234567890",
+    "nombre": "María",
+    "apellido": "González",
+    "telefono": "+57 300 123 4567",
+    "email": "maria.gonzalez@example.com",
+    "direccion": "Calle 123 #45-67, Bogotá"
+  },
+  "empleado": {
+    "numero_identificacion": "9876543210",
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "cargo": "Vendedor"
+  },
+  "prendas": [
+    {
+      "referencia": "PRD001",
+      "nombre": "Vestido de Gala",
+      "descripcion": "Vestido largo elegante color azul marino",
+      "talla": "M",
+      "tipo": "Vestido",
+      "estado": "ALQUILADA",
+      "precio_alquiler": 50.00
+    }
+  ],
+  "fecha_alquiler": "2026-03-20",
+  "fecha_solicitud": "2026-03-12T14:30:00.000Z"
+}
+```
+
+### Error Response
+
+If the service is not found:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Servicio número 999 no encontrado",
+  "error": "Not Found"
+}
+```
+
+---
+
+## Validation Rules
+
+### Date Format
+
+The `fecha_alquiler` must be in ISO 8601 date format (YYYY-MM-DD):
+
+<CodeGroup>
+```json Valid
+{
+  "fecha_alquiler": "2026-03-20"
+}
+```
+
+```json Invalid
+{
+  "fecha_alquiler": "20/03/2026"
+}
+```
+</CodeGroup>
+
+### Referencias Array
+
+The `referencias_prendas` array must:
+- Contain at least one reference
+- Each element must be a non-empty string
+- All references must exist in the costume inventory
+- All costumes must be available (estado: DISPONIBLE)
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "referencias_prendas should not be empty",
+    "each value in referencias_prendas must be a string"
+  ],
+  "error": "Bad Request"
+}
+```

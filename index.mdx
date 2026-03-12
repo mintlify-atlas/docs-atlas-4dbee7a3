@@ -1,97 +1,84 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to Costume Retail System"
+description: "A comprehensive costume rental management platform with inventory tracking, customer management, and automated workflows"
 ---
 
-## Setting up
+## What is Costume Retail System?
 
-Get your documentation site up and running in minutes.
+Costume Retail System is a full-stack SaaS platform designed to streamline costume rental operations. Built with NestJS and Astro, it provides a modern, efficient solution for managing costume inventory, tracking rentals, handling customer relationships, and automating laundry workflows.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+## Key Features
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Inventory Management"
+    icon="shirt"
+    href="/guides/costumes"
   >
-    Edit your docs locally and preview them in real time.
+    Track costume availability, sizes, types, and status in real-time
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Customer Portal"
+    icon="users"
+    href="/guides/customers"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Manage customer information and rental history
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
+    title="Rental Services"
+    icon="calendar-check"
+    href="/guides/rentals"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Create and track rental bookings with date management
   </Card>
   <Card
-    title="Code samples"
+    title="Laundry Queue"
+    icon="droplet"
+    href="/guides/laundry"
+  >
+    Automate costume cleaning workflows with priority handling
+  </Card>
+</CardGroup>
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running in minutes
+  </Card>
+  <Card
+    title="Installation Guide"
+    icon="download"
+    href="/installation"
+  >
+    Complete setup instructions
+  </Card>
+  <Card
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api/overview"
   >
-    Add sample code to demonstrate how to use your product.
+    Explore the RESTful API
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Deployment"
+    icon="server"
+    href="/deployment/docker"
   >
-    Display images and other media.
+    Deploy with Docker
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Technology Stack
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Built with modern, production-ready technologies:
+
+- **Backend**: NestJS with TypeScript
+- **Frontend**: Astro
+- **Database**: PostgreSQL with TypeORM
+- **API Documentation**: Swagger/OpenAPI
+- **Containerization**: Docker support

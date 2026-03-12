@@ -1,0 +1,551 @@
+---
+title: 'Employee Management'
+description: 'Register employees, manage roles, and track service assignments'
+icon: 'user-tie'
+---
+
+## Overview
+
+The employee management system allows you to register staff members who work with the costume rental system. Employees process rental services, and each rental is associated with the employee who handled the transaction. This provides accountability and helps track staff performance.
+
+## Employee Information
+
+Each employee record contains the following information:
+
+<ParamField path="numero_identificacion" type="string" required>
+  Unique identification number (employee ID, national ID, etc.). This serves as the primary identifier.
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Employee's first name.
+</ParamField>
+
+<ParamField path="apellido" type="string" required>
+  Employee's last name or family name.
+</ParamField>
+
+<ParamField path="telefono" type="string" required>
+  Contact phone number for internal communication.
+</ParamField>
+
+<ParamField path="email" type="string">
+  Optional email address. Must be a valid email format if provided.
+</ParamField>
+
+<ParamField path="cargo" type="string" required>
+  Employee's job position or role (e.g., "Sales Associate", "Manager", "Cashier", "Inventory Specialist").
+</ParamField>
+
+## Registering a New Employee
+
+When hiring a new staff member or giving them system access:
+
+<Steps>
+  <Step title="Collect Employee Information">
+    Gather required information:
+    - Official identification document
+    - Contact details (phone and email)
+    - Job title or role
+  </Step>
+  
+  <Step title="Open Employee Registration">
+    Navigate to the Employees section and click "Register New Employee".
+  </Step>
+  
+  <Step title="Enter Employee Details">
+    Fill in all required fields:
+    
+    - **Identification Number**: Employee ID or national ID
+    - **First Name**: Employee's given name
+    - **Last Name**: Employee's family name
+    - **Phone**: Contact number with area code
+    - **Email**: Work email address (optional but recommended)
+    - **Position**: Job title (e.g., "Sales Associate", "Store Manager")
+  </Step>
+  
+  <Step title="Verify and Save">
+    Double-check all information, especially the identification number. Click "Save" to register the employee.
+  </Step>
+  
+  <Step title="Employee Ready for System Use">
+    The employee can now be assigned to process rental services.
+  </Step>
+</Steps>
+
+### API Example
+
+```bash cURL
+curl -X POST http://localhost:3000/empleados \
+  -H "Content-Type: application/json" \
+  -d '{
+    "numero_identificacion": "EMP-001",
+    "nombre": "John",
+    "apellido": "Smith",
+    "telefono": "+1-555-0199",
+    "email": "john.smith@costumerental.com",
+    "cargo": "Sales Associate"
+  }'
+```
+
+<Note>
+  **Validation Rules:**
+  - `numero_identificacion` must be unique - cannot register two employees with the same ID
+  - `email` must be a valid email format if provided
+  - All required fields must be filled out
+  - `cargo` can be any string describing the employee's role
+</Note>
+
+## Viewing Employee Information
+
+<Tabs>
+  <Tab title="List All Employees">
+    ### View Complete Staff Directory
+    
+    Access the full list of registered employees to browse or search for a specific staff member.
+    
+    **Endpoint:** `GET /empleados`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/empleados
+    ```
+    
+    The response includes all employees with their complete information:
+    
+    ```json Example Response
+    [
+      {
+        "numero_identificacion": "EMP-001",
+        "nombre": "John",
+        "apellido": "Smith",
+        "telefono": "+1-555-0199",
+        "email": "john.smith@costumerental.com",
+        "cargo": "Sales Associate",
+        "servicios": []
+      },
+      {
+        "numero_identificacion": "EMP-002",
+        "nombre": "Sarah",
+        "apellido": "Johnson",
+        "telefono": "+1-555-0288",
+        "email": "sarah.johnson@costumerental.com",
+        "cargo": "Store Manager",
+        "servicios": [...]
+      },
+      {
+        "numero_identificacion": "EMP-003",
+        "nombre": "Michael",
+        "apellido": "Chen",
+        "telefono": "+1-555-0377",
+        "email": null,
+        "cargo": "Inventory Specialist",
+        "servicios": [...]
+      }
+    ]
+    ```
+  </Tab>
+  
+  <Tab title="Find Specific Employee">
+    ### Lookup Employee by ID
+    
+    Retrieve detailed information about a single employee using their identification number.
+    
+    **Endpoint:** `GET /empleados/:id`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/empleados/EMP-001
+    ```
+    
+    ```json Example Response
+    {
+      "numero_identificacion": "EMP-001",
+      "nombre": "John",
+      "apellido": "Smith",
+      "telefono": "+1-555-0199",
+      "email": "john.smith@costumerental.com",
+      "cargo": "Sales Associate",
+      "servicios": [
+        {
+          "numero_servicio": 42,
+          "fecha_alquiler": "2026-03-15",
+          "fecha_solicitud": "2026-03-12T14:30:00Z",
+          "cliente": {...},
+          "prendas": [...]
+        },
+        {
+          "numero_servicio": 45,
+          "fecha_alquiler": "2026-03-16",
+          "fecha_solicitud": "2026-03-12T15:45:00Z",
+          "cliente": {...},
+          "prendas": [...]
+        }
+      ]
+    }
+    ```
+    
+    <Note>
+      The response includes all rental services processed by this employee through the `servicios` array.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Tracking Employee Performance
+
+When you retrieve an employee's details, the system includes their service history:
+
+<Steps>
+  <Step title="Look Up Employee">
+    Use `GET /empleados/:id` to retrieve employee information.
+  </Step>
+  
+  <Step title="Review Servicios Array">
+    The `servicios` field contains all rental services processed by this employee.
+  </Step>
+  
+  <Step title="Analyze Performance Metrics">
+    From the service history, you can calculate:
+    - Total number of rentals processed
+    - Date range of activity
+    - Types of customers served
+    - Costume categories handled
+  </Step>
+  
+  <Step title="Compare Across Staff">
+    Query multiple employees to compare:
+    - Sales volume
+    - Customer satisfaction patterns
+    - Processing efficiency
+  </Step>
+</Steps>
+
+### Performance Analysis Example
+
+```bash
+# Get employee details with service history
+curl -X GET http://localhost:3000/empleados/EMP-001
+```
+
+From the response:
+- **Total Rentals**: Count of items in `servicios` array
+- **Date Range**: From earliest to latest `fecha_solicitud`
+- **Recent Activity**: Filter `servicios` by recent dates
+- **Average Transaction Size**: Count `prendas` per service
+
+## Employee Roles and Responsibilities
+
+### Common Positions
+
+<CardGroup cols={2}>
+  <Card title="Sales Associate" icon="user">
+    Front-line staff who interact with customers, process rentals, and handle returns.
+    
+    **Typical Duties:**
+    - Greet and assist customers
+    - Create rental services
+    - Process payments
+    - Handle costume returns
+  </Card>
+  
+  <Card title="Store Manager" icon="user-crown">
+    Supervises operations, manages staff, and oversees inventory.
+    
+    **Typical Duties:**
+    - Staff scheduling and supervision
+    - Inventory management
+    - Handle escalated customer issues
+    - Process complex rentals
+  </Card>
+  
+  <Card title="Inventory Specialist" icon="boxes-stacked">
+    Manages costume catalog, laundry queue, and stock levels.
+    
+    **Typical Duties:**
+    - Register new costumes
+    - Manage laundry queue
+    - Track costume conditions
+    - Maintain stock levels
+  </Card>
+  
+  <Card title="Cashier" icon="cash-register">
+    Handles payment processing and transaction completion.
+    
+    **Typical Duties:**
+    - Process payments
+    - Issue receipts
+    - Handle refunds
+    - Balance cash drawer
+  </Card>
+</CardGroup>
+
+### Role-Based System Access
+
+<Note>
+  The current system does **not** implement role-based permissions. All employees have the same system access level. The `cargo` field is informational only and does not restrict functionality.
+  
+  If you need different access levels:
+  - Implement authentication and authorization in your application layer
+  - Use the `cargo` field to determine UI permissions
+  - Add role-based access control (RBAC) to the API
+</Note>
+
+## Common Workflows
+
+### Onboarding New Employee
+
+<Steps>
+  <Step title="Collect HR Information">
+    Complete standard HR onboarding (contracts, tax forms, etc.).
+  </Step>
+  
+  <Step title="Assign Employee ID">
+    Choose or generate a unique identification number (e.g., "EMP-004").
+  </Step>
+  
+  <Step title="Register in System">
+    Create employee record with all required information:
+    ```bash
+    POST /empleados
+    {
+      "numero_identificacion": "EMP-004",
+      "nombre": "Lisa",
+      "apellido": "Williams",
+      "telefono": "+1-555-0466",
+      "email": "lisa.williams@costumerental.com",
+      "cargo": "Sales Associate"
+    }
+    ```
+  </Step>
+  
+  <Step title="Provide System Training">
+    Train employee on:
+    - Customer registration
+    - Creating rentals
+    - Processing returns
+    - Laundry queue management
+  </Step>
+  
+  <Step title="Monitor Initial Performance">
+    Check their first few rental services to ensure proper system usage.
+  </Step>
+</Steps>
+
+### Processing Rental as Employee
+
+<Steps>
+  <Step title="Employee Logs In">
+    Employee identifies themselves (your app may have authentication).
+  </Step>
+  
+  <Step title="Customer Requests Rental">
+    Customer selects costumes and rental date.
+  </Step>
+  
+  <Step title="Create Rental Service">
+    Employee creates the rental using **their own employee ID**:
+    
+    ```bash
+    POST /servicios
+    {
+      "cliente_id": "1234567890",
+      "empleado_id": "EMP-001",  ← Employee's ID here
+      "referencias_prendas": ["PRIN-001", "SUP-042"],
+      "fecha_alquiler": "2026-03-15"
+    }
+    ```
+  </Step>
+  
+  <Step title="Service Linked to Employee">
+    The rental is now permanently associated with this employee in the `servicios` array.
+  </Step>
+</Steps>
+
+### Reviewing Employee Activity
+
+<Steps>
+  <Step title="Select Time Period">
+    Decide the analysis timeframe (today, this week, this month).
+  </Step>
+  
+  <Step title="Get Employee Details">
+    Retrieve employee record with service history:
+    ```bash
+    GET /empleados/EMP-001
+    ```
+  </Step>
+  
+  <Step title="Filter Services by Date">
+    From the `servicios` array, filter by `fecha_solicitud` within your timeframe.
+  </Step>
+  
+  <Step title="Calculate Metrics">
+    - **Volume**: Count of services
+    - **Revenue**: Sum of costume `precio_alquiler` across services
+    - **Average Transaction**: Mean number of costumes per service
+    - **Customer Diversity**: Count unique `cliente_id` values
+  </Step>
+  
+  <Step title="Generate Report">
+    Present findings for performance review or commission calculation.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Clear Employee IDs" icon="id-badge">
+    Create memorable identification numbers like "EMP-001" rather than random numbers.
+  </Card>
+  
+  <Card title="Collect Work Emails" icon="envelope">
+    Use work email addresses to distinguish from personal emails and enable work communication.
+  </Card>
+  
+  <Card title="Standardize Positions" icon="list">
+    Use consistent position titles (don't mix "Manager" and "Mgr" or "Associate" and "Staff").
+  </Card>
+  
+  <Card title="Track Service Attribution" icon="link">
+    Ensure every rental service is attributed to the correct employee for accurate performance tracking.
+  </Card>
+  
+  <Card title="Regular Performance Review" icon="chart-line">
+    Periodically review employee service history to identify top performers and training needs.
+  </Card>
+  
+  <Card title="Update Contact Information" icon="sync">
+    Keep phone and email current, especially if employees change roles or contact details.
+  </Card>
+</CardGroup>
+
+## Understanding Employee Data
+
+### Primary Identifier
+
+The `numero_identificacion` field is the primary key:
+- Must be unique across all employees
+- Cannot be changed after registration (no update endpoint)
+- Used to link employees to rental services
+- Use for all employee lookups and references
+
+### Position Information
+
+The `cargo` field:
+- Free-form text describing employee's role
+- Not validated or restricted to specific values
+- Does **not** enforce system permissions
+- Used for organizational purposes and reporting
+- Should be standardized within your organization
+
+### Service Relationship
+
+Each employee record includes:
+- **`servicios` array**: All rental services processed by this employee
+- **Linked via `empleado_id`**: Rental services reference employee by ID
+- **Historical record**: Service history is preserved even if employee leaves
+- **Performance tracking**: Use this data for metrics and reviews
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Employee already exists">
+    This error means an employee with the same identification number is already registered:
+    
+    - Search for the existing employee: `GET /empleados/:id`
+    - Verify the ID number was entered correctly
+    - If employee truly exists, use their existing record
+    - Choose a different employee ID if registering new staff
+  </Accordion>
+  
+  <Accordion title="Invalid email format error">
+    If registration fails due to email validation:
+    
+    - Verify email is in proper format: `user@domain.com`
+    - Check for typos (common: `.con` instead of `.com`)
+    - Remove spaces before/after email
+    - Leave email field empty if not available
+  </Accordion>
+  
+  <Accordion title="Employee not found when creating rental">
+    If `POST /servicios` fails with "employee not found":
+    
+    - Verify employee ID exists: `GET /empleados/:id`
+    - Check for typos in `empleado_id` field
+    - Ensure employee was registered before creating rental
+    - Check capitalization (IDs are case-sensitive)
+  </Accordion>
+  
+  <Accordion title="Employee has no service history">
+    If `servicios` array is empty:
+    
+    - Employee has not processed any rentals yet
+    - This is normal for newly registered employees
+    - History will populate after first rental is created with their ID
+  </Accordion>
+  
+  <Accordion title="Can't update employee information">
+    The current API does not provide an endpoint to update employee records:
+    
+    - Contact system administrator for database updates
+    - Use admin interface if available
+    - Work with developers to add update endpoint (PATCH/PUT)
+    - For now, ensure information is correct during initial registration
+  </Accordion>
+</AccordionGroup>
+
+## System Limitations
+
+<Warning>
+  **No Update or Delete Endpoints**
+  
+  The current employee API only supports:
+  - Creating new employees (`POST /empleados`)
+  - Listing all employees (`GET /empleados`)
+  - Getting specific employee (`GET /empleados/:id`)
+  
+  It does **not** support:
+  - Updating employee information (no PATCH/PUT endpoint)
+  - Deleting employees (no DELETE endpoint)
+  - Changing employee status (active/inactive)
+  
+  If you need these features, work with your development team to add them.
+</Warning>
+
+<Note>
+  **No Authentication or Permissions**
+  
+  The system does not include:
+  - Employee login/authentication
+  - Password management
+  - Role-based access control
+  - Session management
+  
+  The `empleado_id` in rental services is simply a reference - any employee ID can be used when creating rentals. You must implement authentication in your application layer if needed.
+</Note>
+
+## Privacy and Security
+
+<Warning>
+  Employee records contain personal information. Follow these guidelines:
+  
+  - Only access employee data when necessary for business purposes
+  - Do not share employee information with unauthorized parties
+  - Follow your organization's HR privacy policies
+  - Comply with local employment and privacy laws
+  - Secure employee identification numbers and contact details
+  - Use work email addresses when possible
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Create Rentals" icon="handshake" href="/guides/rentals">
+    Learn how employees process rental services
+  </Card>
+  
+  <Card title="Customer Management" icon="users" href="/guides/customers">
+    Understand customer registration and service
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/employees">
+    View complete API documentation for employee endpoints
+  </Card>
+</CardGroup>

@@ -1,0 +1,254 @@
+---
+title: 'Costumes API'
+description: 'Endpoints for managing costume inventory'
+---
+
+## Create Costume
+
+<api-endpoint method="POST" path="/api/prendas" />
+
+Register a new costume in the inventory system.
+
+### Request Body
+
+<ParamField body="referencia" type="string" required>
+  Unique reference code for the costume
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Costume name
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional detailed description of the costume
+</ParamField>
+
+<ParamField body="talla" type="string" required>
+  Size of the costume (e.g., "S", "M", "L", "XL")
+</ParamField>
+
+<ParamField body="tipo" type="string" required>
+  Type or category of the costume
+</ParamField>
+
+<ParamField body="estado" type="enum">
+  Current state of the costume. Defaults to `DISPONIBLE`.
+  
+  **Options:**
+  - `DISPONIBLE` - Available for rent
+  - `ALQUILADA` - Currently rented
+  - `EN_LAVANDERIA` - In laundry
+</ParamField>
+
+<ParamField body="precio_alquiler" type="number" required>
+  Rental price. Must be a positive number (minimum: 0).
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/prendas \
+  -H "Content-Type: application/json" \
+  -d '{
+    "referencia": "PRD001",
+    "nombre": "Vestido de Gala",
+    "descripcion": "Vestido largo elegante color azul marino",
+    "talla": "M",
+    "tipo": "Vestido",
+    "precio_alquiler": 50.00
+  }'
+```
+
+### Response
+
+<ResponseField name="referencia" type="string">
+  Unique reference code
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Costume name
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Costume description
+</ResponseField>
+
+<ResponseField name="talla" type="string">
+  Size
+</ResponseField>
+
+<ResponseField name="tipo" type="string">
+  Type or category
+</ResponseField>
+
+<ResponseField name="estado" type="enum">
+  Current state (DISPONIBLE, ALQUILADA, EN_LAVANDERIA)
+</ResponseField>
+
+<ResponseField name="precio_alquiler" type="number">
+  Rental price
+</ResponseField>
+
+```json
+{
+  "referencia": "PRD001",
+  "nombre": "Vestido de Gala",
+  "descripcion": "Vestido largo elegante color azul marino",
+  "talla": "M",
+  "tipo": "Vestido",
+  "estado": "DISPONIBLE",
+  "precio_alquiler": 50.00
+}
+```
+
+---
+
+## List All Costumes
+
+<api-endpoint method="GET" path="/api/prendas" />
+
+Retrieve a list of all costumes in the inventory.
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/prendas
+```
+
+### Response
+
+Returns an array of costume objects:
+
+```json
+[
+  {
+    "referencia": "PRD001",
+    "nombre": "Vestido de Gala",
+    "descripcion": "Vestido largo elegante color azul marino",
+    "talla": "M",
+    "tipo": "Vestido",
+    "estado": "DISPONIBLE",
+    "precio_alquiler": 50.00
+  },
+  {
+    "referencia": "PRD002",
+    "nombre": "Traje de Superhéroe",
+    "descripcion": "Disfraz completo de superhéroe",
+    "talla": "L",
+    "tipo": "Disfraz",
+    "estado": "ALQUILADA",
+    "precio_alquiler": 35.00
+  }
+]
+```
+
+---
+
+## Get Costumes by Size
+
+<api-endpoint method="GET" path="/api/prendas/talla/:talla" />
+
+Filter costumes by size.
+
+### Path Parameters
+
+<ParamField path="talla" type="string" required>
+  Size to filter by (e.g., "S", "M", "L", "XL")
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/prendas/talla/M
+```
+
+### Response
+
+Returns an array of costumes matching the specified size:
+
+```json
+[
+  {
+    "referencia": "PRD001",
+    "nombre": "Vestido de Gala",
+    "descripcion": "Vestido largo elegante color azul marino",
+    "talla": "M",
+    "tipo": "Vestido",
+    "estado": "DISPONIBLE",
+    "precio_alquiler": 50.00
+  },
+  {
+    "referencia": "PRD005",
+    "nombre": "Smoking",
+    "descripcion": "Traje formal completo",
+    "talla": "M",
+    "tipo": "Traje",
+    "estado": "DISPONIBLE",
+    "precio_alquiler": 60.00
+  }
+]
+```
+
+---
+
+## Get Costume by Reference
+
+<api-endpoint method="GET" path="/api/prendas/:referencia" />
+
+Retrieve details of a specific costume by its reference code.
+
+### Path Parameters
+
+<ParamField path="referencia" type="string" required>
+  Unique reference code of the costume
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/prendas/PRD001
+```
+
+### Response
+
+```json
+{
+  "referencia": "PRD001",
+  "nombre": "Vestido de Gala",
+  "descripcion": "Vestido largo elegante color azul marino",
+  "talla": "M",
+  "tipo": "Vestido",
+  "estado": "DISPONIBLE",
+  "precio_alquiler": 50.00
+}
+```
+
+### Error Response
+
+If the costume is not found:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Prenda con referencia PRD999 no encontrada",
+  "error": "Not Found"
+}
+```
+
+---
+
+## Costume States
+
+Costumes can be in one of three states:
+
+<ResponseField name="DISPONIBLE" type="string">
+  Available for rent - costume is in inventory and ready to be rented
+</ResponseField>
+
+<ResponseField name="ALQUILADA" type="string">
+  Currently rented - costume is out with a customer
+</ResponseField>
+
+<ResponseField name="EN_LAVANDERIA" type="string">
+  In laundry - costume is being cleaned and not available for rent
+</ResponseField>

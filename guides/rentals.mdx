@@ -1,0 +1,518 @@
+---
+title: 'Rental Management'
+description: 'Create rental services, manage rental dates, and track active rentals'
+icon: 'handshake'
+---
+
+## Overview
+
+The rental service system is the core of your costume rental business. It connects customers, employees, and costumes together to create rental transactions. Each rental service tracks which costumes a customer is renting, when they'll pick them up, and which employee processed the transaction.
+
+## Understanding Rental Services
+
+A rental service (`ServicioAlquiler`) represents a single rental transaction and contains:
+
+<ParamField path="numero_servicio" type="number">
+  Auto-generated unique service number that identifies this rental.
+</ParamField>
+
+<ParamField path="cliente" type="object" required>
+  The customer renting the costumes (referenced by `cliente_id` - their identification number).
+</ParamField>
+
+<ParamField path="empleado" type="object" required>
+  The employee who processed this rental (referenced by `empleado_id` - their identification number).
+</ParamField>
+
+<ParamField path="prendas" type="array" required>
+  List of costumes included in this rental (referenced by `referencias_prendas` - array of costume reference codes).
+</ParamField>
+
+<ParamField path="fecha_alquiler" type="date" required>
+  The date when the customer will pick up or use the costumes (format: YYYY-MM-DD).
+</ParamField>
+
+<ParamField path="fecha_solicitud" type="timestamp">
+  Auto-generated timestamp when the rental was created in the system.
+</ParamField>
+
+## Creating a Rental Service
+
+Follow this workflow to create a new rental:
+
+<Steps>
+  <Step title="Verify Customer Registration">
+    Ensure the customer is registered in the system. Look them up by identification number:
+    
+    ```bash
+    curl -X GET http://localhost:3000/clientes/1234567890
+    ```
+    
+    If not found, [register the customer first](/guides/customers).
+  </Step>
+  
+  <Step title="Check Costume Availability">
+    Verify all desired costumes are available (`estado: DISPONIBLE`):
+    
+    ```bash
+    # Check each costume
+    curl -X GET http://localhost:3000/prendas/PRIN-001
+    curl -X GET http://localhost:3000/prendas/SUP-042
+    ```
+    
+    <Warning>
+      Only costumes with `estado: DISPONIBLE` can be rented. Costumes that are `ALQUILADA` or `EN_LAVANDERIA` cannot be included in new rentals.
+    </Warning>
+  </Step>
+  
+  <Step title="Determine Rental Date">
+    Ask the customer when they need the costumes. The rental date should be:
+    - In YYYY-MM-DD format (e.g., "2026-03-15")
+    - Today or in the future
+    - The date customer will pick up or use the costumes
+  </Step>
+  
+  <Step title="Create the Rental Service">
+    Submit a POST request with all required information:
+    
+    ```bash cURL
+    curl -X POST http://localhost:3000/servicios \
+      -H "Content-Type: application/json" \
+      -d '{
+        "cliente_id": "1234567890",
+        "empleado_id": "EMP-001",
+        "referencias_prendas": ["PRIN-001", "SUP-042"],
+        "fecha_alquiler": "2026-03-15"
+      }'
+    ```
+  </Step>
+  
+  <Step title="System Processes Rental">
+    When the rental is created, the system automatically:
+    - Generates a unique `numero_servicio`
+    - Changes all included costumes' state to `ALQUILADA`
+    - Records the current timestamp as `fecha_solicitud`
+    - Links the rental to the customer and employee
+  </Step>
+  
+  <Step title="Provide Service Number to Customer">
+    Save the returned `numero_servicio` and give it to the customer as their rental confirmation number.
+  </Step>
+</Steps>
+
+### API Request Details
+
+<ParamField path="cliente_id" type="string" required>
+  Customer's identification number (must exist in customers database).
+</ParamField>
+
+<ParamField path="empleado_id" type="string" required>
+  Employee's identification number processing this rental (must exist in employees database).
+</ParamField>
+
+<ParamField path="referencias_prendas" type="string[]" required>
+  Array of costume reference codes to include in the rental. Must be non-empty and all costumes must be available.
+</ParamField>
+
+<ParamField path="fecha_alquiler" type="string" required>
+  Rental date in ISO 8601 date format (YYYY-MM-DD). Example: "2026-03-15"
+</ParamField>
+
+### Example Response
+
+```json
+{
+  "numero_servicio": 42,
+  "cliente": {
+    "numero_identificacion": "1234567890",
+    "nombre": "Maria",
+    "apellido": "Rodriguez",
+    "telefono": "+1-555-0123",
+    "email": "maria.rodriguez@email.com",
+    "direccion": "123 Main Street, Springfield, CA 90210"
+  },
+  "empleado": {
+    "numero_identificacion": "EMP-001",
+    "nombre": "John",
+    "apellido": "Smith",
+    "cargo": "Sales Associate"
+  },
+  "prendas": [
+    {
+      "referencia": "PRIN-001",
+      "nombre": "Princess Elsa Dress",
+      "talla": "Child 8-10",
+      "estado": "ALQUILADA",
+      "precio_alquiler": 35.00
+    },
+    {
+      "referencia": "SUP-042",
+      "nombre": "Superman Suit",
+      "talla": "Adult M",
+      "estado": "ALQUILADA",
+      "precio_alquiler": 45.00
+    }
+  ],
+  "fecha_alquiler": "2026-03-15",
+  "fecha_solicitud": "2026-03-12T14:30:00.000Z"
+}
+```
+
+## Viewing Rental Services
+
+The system provides multiple ways to query rental information:
+
+<Tabs>
+  <Tab title="By Service Number">
+    ### Lookup Specific Rental
+    
+    Retrieve complete details about a rental using its service number:
+    
+    **Endpoint:** `GET /servicios/:numero`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/servicios/42
+    ```
+    
+    Returns the complete rental record including customer info, employee info, all costumes, and both dates.
+    
+    **Use Cases:**
+    - Customer inquiries using their rental confirmation number
+    - Looking up rental details during pickup
+    - Verifying rental information for returns
+  </Tab>
+  
+  <Tab title="By Customer">
+    ### View Customer's Active Rentals
+    
+    Find all current and upcoming rentals for a specific customer:
+    
+    **Endpoint:** `GET /servicios/cliente/:clienteId`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/servicios/cliente/1234567890
+    ```
+    
+    <Note>
+      This endpoint returns only **vigente** (current) services where `fecha_alquiler >= today`, sorted by rental date ascending.
+    </Note>
+    
+    **Use Cases:**
+    - Checking if customer has active rentals
+    - Viewing customer's upcoming costume pickups
+    - Ensuring customer has returned previous rentals
+  </Tab>
+  
+  <Tab title="By Date">
+    ### Find Rentals for Specific Date
+    
+    View all rentals scheduled for a particular date:
+    
+    **Endpoint:** `GET /servicios/fecha/:fecha`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/servicios/fecha/2026-03-15
+    ```
+    
+    Date format must be `YYYY-MM-DD`.
+    
+    **Use Cases:**
+    - Planning daily operations
+    - Preparing costumes for pickups
+    - Viewing scheduled returns for the day
+    - Managing peak rental days (holidays, weekends)
+  </Tab>
+</Tabs>
+
+## Rental Workflow Examples
+
+### Complete Rental Process
+
+<Steps>
+  <Step title="Customer Arrives">
+    Customer walks in or calls wanting to rent costumes for an event.
+  </Step>
+  
+  <Step title="Collect Information">
+    - Event date: When will they need the costumes?
+    - Size requirements: What sizes do they need?
+    - Costume preferences: What types/themes are they interested in?
+    - Customer ID: Are they registered? If not, register them.
+  </Step>
+  
+  <Step title="Browse and Select Costumes">
+    Help customer select costumes:
+    ```bash
+    # Find costumes by size
+    GET /prendas/talla/M
+    
+    # Check specific costume
+    GET /prendas/PRIN-001
+    ```
+  </Step>
+  
+  <Step title="Verify Availability">
+    Ensure all selected costumes have `estado: DISPONIBLE`.
+  </Step>
+  
+  <Step title="Calculate Total Price">
+    Add up the `precio_alquiler` of all selected costumes:
+    ```
+    Princess Dress: $35.00
+    Superman Suit:  $45.00
+    ─────────────────────
+    Total:          $80.00
+    ```
+  </Step>
+  
+  <Step title="Create Rental Service">
+    Submit the rental with customer ID, your employee ID, costume references, and rental date.
+  </Step>
+  
+  <Step title="Provide Confirmation">
+    Give customer:
+    - Service number for their records
+    - Total rental cost
+    - Pickup date and time
+    - Return policy information
+  </Step>
+</Steps>
+
+### Managing Costume Pickup
+
+<Steps>
+  <Step title="Customer Arrives for Pickup">
+    Customer comes to pick up their rental on the scheduled date.
+  </Step>
+  
+  <Step title="Look Up Rental">
+    Use the service number or customer ID:
+    ```bash
+    GET /servicios/42
+    # or
+    GET /servicios/cliente/1234567890
+    ```
+  </Step>
+  
+  <Step title="Verify Date">
+    Check that `fecha_alquiler` matches today's date or that customer is picking up early.
+  </Step>
+  
+  <Step title="Gather Costumes">
+    Collect all costumes listed in the `prendas` array.
+  </Step>
+  
+  <Step title="Inspect Costumes">
+    Before handing over, verify:
+    - All costumes are clean and in good condition
+    - Costumes have all accessories
+    - Correct sizes as ordered
+  </Step>
+  
+  <Step title="Complete Pickup">
+    - Collect payment (if not already paid)
+    - Have customer sign acknowledgment
+    - Review return date and policy
+    - Provide receipt with service number
+  </Step>
+</Steps>
+
+### Handling Costume Returns
+
+<Steps>
+  <Step title="Customer Returns Costumes">
+    Customer brings costumes back after their event.
+  </Step>
+  
+  <Step title="Look Up Rental Service">
+    Find the rental record using service number.
+  </Step>
+  
+  <Step title="Verify All Items Returned">
+    Check off each costume from the `prendas` list.
+  </Step>
+  
+  <Step title="Inspect for Damage">
+    Examine each costume for:
+    - Stains or tears
+    - Missing accessories
+    - Excessive wear
+  </Step>
+  
+  <Step title="Add to Laundry Queue">
+    All returned costumes should go to laundry:
+    ```bash
+    # Add each costume to laundry
+    POST /lavanderia
+    {
+      "referencia": "PRIN-001",
+      "prioridad": false
+    }
+    ```
+    See [Laundry Guide](/guides/laundry) for details.
+  </Step>
+  
+  <Step title="Close Rental">
+    Mark rental as complete in your records. The costumes' state is now `EN_LAVANDERIA`.
+  </Step>
+</Steps>
+
+## Common Scenarios
+
+### Customer Wants to Extend Rental
+
+<Warning>
+  The current system does not support modifying existing rentals. To extend:
+  
+  1. Create a new rental service with the new date
+  2. Note the original service number in your records
+  3. Adjust billing for the extension
+  4. Keep costumes in `ALQUILADA` state (don't return to laundry between rentals)
+</Warning>
+
+### Checking Daily Pickups
+
+```bash
+# See all rentals for today
+curl -X GET http://localhost:3000/servicios/fecha/2026-03-12
+
+# Prepare these costumes for customer pickup
+```
+
+### Customer Lost Their Service Number
+
+```bash
+# Look up by customer ID
+curl -X GET http://localhost:3000/servicios/cliente/1234567890
+
+# Find the rental matching their description (date, costume types)
+```
+
+### Multiple Rentals Same Day
+
+```bash
+# Check date to see all scheduled pickups
+GET /servicios/fecha/2026-03-15
+
+# Plan staffing and costume preparation accordingly
+```
+
+## Validation Rules
+
+<Note>
+  **The system validates:**
+  
+  - `cliente_id` must reference an existing customer
+  - `empleado_id` must reference an existing employee  
+  - `referencias_prendas` array must be non-empty
+  - All referenced costumes must exist
+  - All referenced costumes must have `estado: DISPONIBLE`
+  - `fecha_alquiler` must be a valid date string (YYYY-MM-DD)
+</Note>
+
+## Automatic State Management
+
+When a rental service is created, the system automatically:
+
+1. **Changes costume states** from `DISPONIBLE` → `ALQUILADA` for all included costumes
+2. **Prevents double-booking** by making rented costumes unavailable for new rentals
+3. **Links relationships** between customer, employee, and costumes
+4. **Records timestamps** to track when the rental was requested
+
+<Warning>
+  **Do not manually change costume states while they're in active rentals.** The costume state should remain `ALQUILADA` until:
+  
+  - Customer returns the costumes
+  - Costumes are sent to laundry (state becomes `EN_LAVANDERIA`)
+  - After cleaning, state returns to `DISPONIBLE`
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Verify Availability First" icon="check-circle">
+    Always check costume availability before creating rentals. Don't promise costumes that might not be available.
+  </Card>
+  
+  <Card title="Double-Check Dates" icon="calendar">
+    Confirm the rental date with customer verbally and visually (show them the date in YYYY-MM-DD format).
+  </Card>
+  
+  <Card title="Keep Service Numbers Visible" icon="ticket">
+    Print service numbers on receipts and remind customers to bring them for pickup.
+  </Card>
+  
+  <Card title="Plan for Peak Dates" icon="chart-line">
+    Use date queries to identify busy rental periods (holidays, weekends) and prepare inventory.
+  </Card>
+  
+  <Card title="Process Returns Promptly" icon="clock">
+    Add returned costumes to laundry immediately so they're available for next rental.
+  </Card>
+  
+  <Card title="Track Customer Patterns" icon="user-chart">
+    Use customer rental history to anticipate needs and provide better service.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Costume not available">
+    One or more costumes in `referencias_prendas` is not in `DISPONIBLE` state:
+    
+    - Check each costume's current state: `GET /prendas/{referencia}`
+    - Find alternative costumes if needed
+    - Wait for costume to return from laundry or current rental
+    - Use size search to find similar available costumes
+  </Accordion>
+  
+  <Accordion title="Error: Customer not found">
+    The `cliente_id` doesn't match any registered customer:
+    
+    - Verify ID number was entered correctly
+    - Check for typos or extra spaces
+    - Register the customer first: `POST /clientes`
+    - Use `GET /clientes` to list all customers
+  </Accordion>
+  
+  <Accordion title="Error: Employee not found">
+    The `empleado_id` doesn't match any registered employee:
+    
+    - Verify employee ID is correct
+    - Ensure employee is registered in system
+    - Use your own employee ID if unsure
+  </Accordion>
+  
+  <Accordion title="Invalid date format error">
+    The `fecha_alquiler` is not in correct format:
+    
+    - Use ISO 8601 date format: `YYYY-MM-DD`
+    - Example: `"2026-03-15"` (not "03/15/2026" or "March 15, 2026")
+    - Ensure date is a string, not a date object
+  </Accordion>
+  
+  <Accordion title="Empty prendas array error">
+    Cannot create rental without costumes:
+    
+    - Ensure `referencias_prendas` array has at least one costume reference
+    - Verify array is not empty: `[]`
+    - Check array is properly formatted: `["PRIN-001", "SUP-042"]`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Laundry Management" icon="water" href="/guides/laundry">
+    Learn how to process returned costumes through laundry
+  </Card>
+  
+  <Card title="Customer Guide" icon="users" href="/guides/customers">
+    Understand customer registration and management
+  </Card>
+  
+  <Card title="Costume Catalog" icon="shirt" href="/guides/costumes">
+    Browse and manage costume inventory
+  </Card>
+</CardGroup>

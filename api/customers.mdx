@@ -1,0 +1,210 @@
+---
+title: 'Customers API'
+description: 'Endpoints for managing customer records'
+---
+
+## Create Customer
+
+<api-endpoint method="POST" path="/api/clientes" />
+
+Register a new customer in the system.
+
+### Request Body
+
+<ParamField body="numero_identificacion" type="string" required>
+  Customer's unique identification number (e.g., ID card, passport)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Customer's first name
+</ParamField>
+
+<ParamField body="apellido" type="string" required>
+  Customer's last name
+</ParamField>
+
+<ParamField body="telefono" type="string" required>
+  Customer's phone number
+</ParamField>
+
+<ParamField body="email" type="string">
+  Customer's email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="direccion" type="string" required>
+  Customer's physical address
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/clientes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "numero_identificacion": "1234567890",
+    "nombre": "María",
+    "apellido": "González",
+    "telefono": "+57 300 123 4567",
+    "email": "maria.gonzalez@example.com",
+    "direccion": "Calle 123 #45-67, Bogotá"
+  }'
+```
+
+### Response
+
+<ResponseField name="numero_identificacion" type="string">
+  Customer's identification number
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  First name
+</ResponseField>
+
+<ResponseField name="apellido" type="string">
+  Last name
+</ResponseField>
+
+<ResponseField name="telefono" type="string">
+  Phone number
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Email address
+</ResponseField>
+
+<ResponseField name="direccion" type="string">
+  Physical address
+</ResponseField>
+
+```json
+{
+  "numero_identificacion": "1234567890",
+  "nombre": "María",
+  "apellido": "González",
+  "telefono": "+57 300 123 4567",
+  "email": "maria.gonzalez@example.com",
+  "direccion": "Calle 123 #45-67, Bogotá"
+}
+```
+
+---
+
+## List All Customers
+
+<api-endpoint method="GET" path="/api/clientes" />
+
+Retrieve a list of all registered customers.
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/clientes
+```
+
+### Response
+
+Returns an array of customer objects:
+
+```json
+[
+  {
+    "numero_identificacion": "1234567890",
+    "nombre": "María",
+    "apellido": "González",
+    "telefono": "+57 300 123 4567",
+    "email": "maria.gonzalez@example.com",
+    "direccion": "Calle 123 #45-67, Bogotá"
+  },
+  {
+    "numero_identificacion": "9876543210",
+    "nombre": "Carlos",
+    "apellido": "Rodríguez",
+    "telefono": "+57 310 987 6543",
+    "email": "carlos.rodriguez@example.com",
+    "direccion": "Carrera 45 #67-89, Medellín"
+  }
+]
+```
+
+---
+
+## Get Customer by ID
+
+<api-endpoint method="GET" path="/api/clientes/:id" />
+
+Retrieve details of a specific customer by their identification number.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Customer's unique identification number
+</ParamField>
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/clientes/1234567890
+```
+
+### Response
+
+```json
+{
+  "numero_identificacion": "1234567890",
+  "nombre": "María",
+  "apellido": "González",
+  "telefono": "+57 300 123 4567",
+  "email": "maria.gonzalez@example.com",
+  "direccion": "Calle 123 #45-67, Bogotá"
+}
+```
+
+### Error Response
+
+If the customer is not found:
+
+```json
+{
+  "statusCode": 404,
+  "message": "Cliente con identificación 1234567890 no encontrado",
+  "error": "Not Found"
+}
+```
+
+---
+
+## Validation Rules
+
+### Email Format
+
+The `email` field must be a valid email address format:
+
+<CodeGroup>
+```json Valid
+{
+  "email": "customer@example.com"
+}
+```
+
+```json Invalid
+{
+  "email": "not-an-email"
+}
+```
+</CodeGroup>
+
+### Required Fields
+
+All fields except `email` are required. Attempting to create a customer without required fields will result in a validation error:
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "numero_identificacion should not be empty",
+    "nombre should not be empty",
+    "apellido should not be empty"
+  ],
+  "error": "Bad Request"
+}
+```

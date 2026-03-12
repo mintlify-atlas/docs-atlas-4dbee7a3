@@ -1,0 +1,383 @@
+---
+title: 'Customer Management'
+description: 'Register customers, view their details, and track rental history'
+icon: 'users'
+---
+
+## Overview
+
+The customer management system allows you to register new customers, maintain their contact information, and track their rental history. Each customer is identified by a unique identification number (such as a national ID, driver's license, or passport number).
+
+## Customer Information
+
+Each customer record in the system contains the following information:
+
+<ParamField path="numero_identificacion" type="string" required>
+  Unique identification number (national ID, driver's license, passport, etc.). This serves as the primary identifier.
+</ParamField>
+
+<ParamField path="nombre" type="string" required>
+  Customer's first name.
+</ParamField>
+
+<ParamField path="apellido" type="string" required>
+  Customer's last name or family name.
+</ParamField>
+
+<ParamField path="telefono" type="string" required>
+  Contact phone number for rental confirmations and reminders.
+</ParamField>
+
+<ParamField path="email" type="string">
+  Optional email address. Must be a valid email format if provided (validated as proper email).
+</ParamField>
+
+<ParamField path="direccion" type="string" required>
+  Physical address for delivery or emergency contact.
+</ParamField>
+
+## Registering a New Customer
+
+When a new customer wants to rent costumes, you'll need to register them in the system first:
+
+<Steps>
+  <Step title="Collect Customer Information">
+    Request the customer's identification document and contact details. Verify the ID number is accurate.
+  </Step>
+  
+  <Step title="Open Customer Registration Form">
+    Navigate to the Customers section and click "Register New Customer".
+  </Step>
+  
+  <Step title="Enter Customer Details">
+    Fill in all required fields:
+    - **Identification Number**: Enter exactly as shown on ID document
+    - **Name**: Customer's first name
+    - **Last Name**: Customer's family name
+    - **Phone**: Include area code (e.g., +1-555-0123)
+    - **Email**: Optional but recommended for digital receipts
+    - **Address**: Complete street address including city
+  </Step>
+  
+  <Step title="Verify and Save">
+    Double-check all information, especially the identification number and phone number. Click "Save" to register the customer.
+  </Step>
+  
+  <Step title="Customer Ready for Rentals">
+    Once registered, the customer can immediately be associated with rental services.
+  </Step>
+</Steps>
+
+### API Example
+
+```bash cURL
+curl -X POST http://localhost:3000/clientes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "numero_identificacion": "1234567890",
+    "nombre": "Maria",
+    "apellido": "Rodriguez",
+    "telefono": "+1-555-0123",
+    "email": "maria.rodriguez@email.com",
+    "direccion": "123 Main Street, Springfield, CA 90210"
+  }'
+```
+
+<Note>
+  **Validation Rules:**
+  - `numero_identificacion` must be unique - cannot register two customers with the same ID
+  - `email` must be a valid email format if provided
+  - All required fields must be filled out
+  - Phone and address formats are not validated but should follow your organization's standards
+</Note>
+
+## Viewing Customer Information
+
+<Tabs>
+  <Tab title="List All Customers">
+    ### View Complete Customer Database
+    
+    Access the full list of registered customers to browse or search for a specific customer.
+    
+    **Endpoint:** `GET /clientes`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/clientes
+    ```
+    
+    The response includes all customers with their complete information:
+    
+    ```json Example Response
+    [
+      {
+        "numero_identificacion": "1234567890",
+        "nombre": "Maria",
+        "apellido": "Rodriguez",
+        "telefono": "+1-555-0123",
+        "email": "maria.rodriguez@email.com",
+        "direccion": "123 Main Street, Springfield, CA 90210",
+        "servicios": []
+      },
+      {
+        "numero_identificacion": "0987654321",
+        "nombre": "Juan",
+        "apellido": "Garcia",
+        "telefono": "+1-555-0456",
+        "email": null,
+        "direccion": "456 Oak Avenue, Los Angeles, CA 90001",
+        "servicios": [...]
+      }
+    ]
+    ```
+  </Tab>
+  
+  <Tab title="Find Specific Customer">
+    ### Lookup Customer by ID
+    
+    Retrieve detailed information about a single customer using their identification number.
+    
+    **Endpoint:** `GET /clientes/:id`
+    
+    ```bash cURL
+    curl -X GET http://localhost:3000/clientes/1234567890
+    ```
+    
+    ```json Example Response
+    {
+      "numero_identificacion": "1234567890",
+      "nombre": "Maria",
+      "apellido": "Rodriguez",
+      "telefono": "+1-555-0123",
+      "email": "maria.rodriguez@email.com",
+      "direccion": "123 Main Street, Springfield, CA 90210",
+      "servicios": [
+        {
+          "numero_servicio": 42,
+          "fecha_alquiler": "2026-03-15",
+          "fecha_solicitud": "2026-03-12T14:30:00Z",
+          "prendas": [...],
+          "empleado": {...}
+        }
+      ]
+    }
+    ```
+    
+    <Note>
+      The response includes the customer's complete rental history through the `servicios` array.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Tracking Customer Rental History
+
+When you retrieve a customer's details, the system includes their rental history:
+
+<Steps>
+  <Step title="Look Up Customer">
+    Use `GET /clientes/:id` to retrieve customer information.
+  </Step>
+  
+  <Step title="Review Servicios Array">
+    The `servicios` field contains all rental services associated with this customer.
+  </Step>
+  
+  <Step title="Check Rental Details">
+    Each service shows:
+    - Service number (unique ID)
+    - Rental date (`fecha_alquiler`)
+    - Request date (`fecha_solicitud`)
+    - List of rented costumes (`prendas`)
+    - Employee who processed the rental (`empleado`)
+  </Step>
+  
+  <Step title="View Active Rentals">
+    For more detailed active rental information, use the rentals endpoint:
+    
+    ```bash
+    curl -X GET http://localhost:3000/servicios/cliente/1234567890
+    ```
+    
+    This returns only current and future rentals (where rental date >= today).
+  </Step>
+</Steps>
+
+## Common Workflows
+
+### New Customer Walk-In
+
+<Steps>
+  <Step title="Ask for ID">
+    Request the customer's identification document.
+  </Step>
+  
+  <Step title="Check if Already Registered">
+    Try looking up the customer by ID number: `GET /clientes/{id}`
+  </Step>
+  
+  <Step title="Register if New">
+    If customer not found, create new registration with their information.
+  </Step>
+  
+  <Step title="Proceed to Rental">
+    Use the customer's ID number to create a rental service.
+  </Step>
+</Steps>
+
+### Returning Customer
+
+<Steps>
+  <Step title="Lookup Customer Record">
+    Search by identification number to retrieve their information.
+  </Step>
+  
+  <Step title="Verify Contact Information">
+    Ask customer to confirm phone and address are still current.
+  </Step>
+  
+  <Step title="Check Rental History">
+    Review past rentals to understand customer preferences and patterns.
+  </Step>
+  
+  <Step title="Create New Rental">
+    Proceed with new rental service creation.
+  </Step>
+</Steps>
+
+### Customer Has Active Rental
+
+<Steps>
+  <Step title="Check Active Rentals">
+    Use `GET /servicios/cliente/{id}` to see current rentals.
+  </Step>
+  
+  <Step title="Verify Return Status">
+    Check if costumes from previous rental have been returned.
+  </Step>
+  
+  <Step title="Handle Outstanding Items">
+    If costumes not returned:
+    - Contact customer about overdue items
+    - Check if rental date has passed
+    - Apply late fees if applicable
+  </Step>
+  
+  <Step title="Allow New Rental">
+    Once previous rental resolved, create new service.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Verify ID Carefully" icon="id-card">
+    Always double-check identification numbers - typos can create duplicate customer records or prevent finding existing customers.
+  </Card>
+  
+  <Card title="Collect Email Addresses" icon="envelope">
+    While optional, email addresses enable automated rental reminders and digital receipts.
+  </Card>
+  
+  <Card title="Keep Contact Info Current" icon="phone">
+    Ask returning customers to verify their phone and address haven't changed.
+  </Card>
+  
+  <Card title="Note Customer Preferences" icon="star">
+    Use the rental history to remember customer preferences (favorite costume types, common sizes).
+  </Card>
+</CardGroup>
+
+## Understanding Customer Data
+
+### Primary Identifier
+
+The `numero_identificacion` field is the primary key:
+- Must be unique across all customers
+- Cannot be changed after registration
+- Used to link customers to rental services
+- Use for all customer lookups and references
+
+### Contact Information
+
+**Phone Number (`telefono`)**: 
+- Required field for customer communication
+- Use for rental confirmations and reminders
+- No format validation - establish organization standard
+
+**Email Address (`email`)**: 
+- Optional but recommended
+- Validated for proper email format
+- Can be `null` if customer doesn't provide email
+- Useful for digital receipts and notifications
+
+**Physical Address (`direccion`)**: 
+- Required for customer records
+- Used for delivery (if applicable)
+- Emergency contact information
+- No format validation - use complete addresses
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Customer already exists">
+    This error means a customer with the same identification number is already registered:
+    
+    - Search for the existing customer using `GET /clientes/:id`
+    - Verify the ID number was entered correctly
+    - If customer truly exists, use their existing record
+    - If different person, they must provide a different ID document
+  </Accordion>
+  
+  <Accordion title="Invalid email format error">
+    If registration fails due to email validation:
+    
+    - Verify email address is in proper format: `user@domain.com`
+    - Check for typos (common: `.con` instead of `.com`)
+    - Remove spaces before/after email address
+    - Leave email field empty if customer doesn't have one
+  </Accordion>
+  
+  <Accordion title="Can't find customer by name">
+    The system only supports lookup by identification number:
+    
+    - Use `GET /clientes` to list all customers
+    - Manually search the list for the customer's name
+    - Ask customer for their ID number
+    - Consider implementing a search feature in your UI layer
+  </Accordion>
+  
+  <Accordion title="Customer has no rental history">
+    If `servicios` array is empty:
+    
+    - Customer has never rented from you before
+    - This is normal for newly registered customers
+    - History will populate after first rental service is created
+  </Accordion>
+</AccordionGroup>
+
+## Privacy and Data Protection
+
+<Warning>
+  Customer records contain personal information (PII). Follow these guidelines:
+  
+  - Only access customer data when necessary for business purposes
+  - Do not share customer information with unauthorized parties
+  - Follow your organization's data protection policies
+  - Comply with local privacy regulations (GDPR, CCPA, etc.)
+  - Secure customer identification numbers and contact details
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Create Rentals" icon="handshake" href="/guides/rentals">
+    Learn how to create rental services for registered customers
+  </Card>
+  
+  <Card title="Manage Employees" icon="user-tie" href="/guides/employees">
+    Set up employee accounts to process customer rentals
+  </Card>
+  
+  <Card title="Costume Catalog" icon="shirt" href="/guides/costumes">
+    Browse available costumes to rent to customers
+  </Card>
+</CardGroup>

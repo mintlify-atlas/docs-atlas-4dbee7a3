@@ -1,0 +1,277 @@
+---
+title: 'Laundry API'
+description: 'Endpoints for managing the laundry queue with FIFO priority'
+---
+
+## Add Costume to Laundry Queue
+
+<api-endpoint method="POST" path="/api/lavanderia" />
+
+Register a costume to be sent to the laundry. Costumes are added to a queue and will be sent based on FIFO (First In, First Out) order, with optional priority flag.
+
+### Request Body
+
+<ParamField body="referencia" type="string" required>
+  Reference code of the costume to add to laundry queue (must exist in the system)
+</ParamField>
+
+<ParamField body="prioridad" type="boolean">
+  Optional priority flag. If `true`, the costume will be prioritized within the FIFO queue.
+  
+  Default: `false`
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/lavanderia \
+  -H "Content-Type: application/json" \
+  -d '{
+    "referencia": "PRD001",
+    "prioridad": true
+  }'
+```
+
+### Response
+
+<ResponseField name="id" type="number">
+  Auto-generated unique ID for the laundry queue entry
+</ResponseField>
+
+<ResponseField name="prenda" type="object">
+  Costume information object
+  
+  <Expandable title="Prenda Properties">
+    <ResponseField name="referencia" type="string">
+      Costume reference code
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Costume name
+    </ResponseField>
+    <ResponseField name="talla" type="string">
+      Size
+    </ResponseField>
+    <ResponseField name="estado" type="string">
+      Current state (will be EN_LAVANDERIA)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="prioridad" type="boolean">
+  Whether this item has priority in the queue
+</ResponseField>
+
+<ResponseField name="fecha_registro" type="string">
+  Timestamp when added to queue (ISO 8601 format)
+</ResponseField>
+
+<ResponseField name="enviada" type="boolean">
+  Whether the costume has been sent to laundry. Initially `false`.
+</ResponseField>
+
+```json
+{
+  "id": 1,
+  "prenda": {
+    "referencia": "PRD001",
+    "nombre": "Vestido de Gala",
+    "talla": "M",
+    "estado": "EN_LAVANDERIA"
+  },
+  "prioridad": true,
+  "fecha_registro": "2026-03-12T14:30:00.000Z",
+  "enviada": false
+}
+```
+
+---
+
+## List Pending Laundry Items
+
+<api-endpoint method="GET" path="/api/lavanderia" />
+
+Retrieve all costumes that are pending to be sent to the laundry (not yet sent).
+
+### Example Request
+
+```bash
+curl http://localhost:3000/api/lavanderia
+```
+
+### Response
+
+Returns an array of pending laundry queue entries:
+
+```json
+[
+  {
+    "id": 1,
+    "prenda": {
+      "referencia": "PRD001",
+      "nombre": "Vestido de Gala",
+      "talla": "M",
+      "tipo": "Vestido",
+      "estado": "EN_LAVANDERIA"
+    },
+    "prioridad": true,
+    "fecha_registro": "2026-03-12T14:30:00.000Z",
+    "enviada": false
+  },
+  {
+    "id": 2,
+    "prenda": {
+      "referencia": "PRD005",
+      "nombre": "Smoking",
+      "talla": "L",
+      "tipo": "Traje",
+      "estado": "EN_LAVANDERIA"
+    },
+    "prioridad": false,
+    "fecha_registro": "2026-03-12T15:00:00.000Z",
+    "enviada": false
+  }
+]
+```
+
+---
+
+## Send Costumes to Laundry
+
+<api-endpoint method="POST" path="/api/lavanderia/enviar" />
+
+Send a specific number of costumes to the laundry. Items are selected using FIFO (First In, First Out) order based on `fecha_registro`, with priority items processed first.
+
+### Request Body
+
+<ParamField body="cantidad" type="number" required>
+  Number of costumes to send to laundry. Must be a positive integer.
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:3000/api/lavanderia/enviar \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cantidad": 3
+  }'
+```
+
+### Response
+
+Returns information about the sent costumes:
+
+<ResponseField name="mensaje" type="string">
+  Success message indicating how many items were sent
+</ResponseField>
+
+<ResponseField name="enviadas" type="array">
+  Array of laundry queue entries that were marked as sent
+</ResponseField>
+
+```json
+{
+  "mensaje": "3 prendas enviadas a lavandería",
+  "enviadas": [
+    {
+      "id": 1,
+      "prenda": {
+        "referencia": "PRD001",
+        "nombre": "Vestido de Gala"
+      },
+      "prioridad": true,
+      "fecha_registro": "2026-03-12T14:30:00.000Z",
+      "enviada": true
+    },
+    {
+      "id": 2,
+      "prenda": {
+        "referencia": "PRD005",
+        "nombre": "Smoking"
+      },
+      "prioridad": false,
+      "fecha_registro": "2026-03-12T15:00:00.000Z",
+      "enviada": true
+    },
+    {
+      "id": 3,
+      "prenda": {
+        "referencia": "PRD010",
+        "nombre": "Traje Medieval"
+      },
+      "prioridad": false,
+      "fecha_registro": "2026-03-12T16:00:00.000Z",
+      "enviada": true
+    }
+  ]
+}
+```
+
+---
+
+## FIFO Queue Logic
+
+The laundry system implements a First In, First Out (FIFO) queue with priority support:
+
+### Priority Order
+
+1. **Priority items** (`prioridad: true`) are processed first
+2. Within each priority level, items are ordered by `fecha_registro` (oldest first)
+3. When sending items, the system selects the requested quantity following this order
+
+### Example Queue
+
+If the queue contains:
+
+```
+ID  | Referencia | Prioridad | Fecha Registro
+----|------------|-----------|-------------------
+1   | PRD001     | false     | 2026-03-12 10:00
+2   | PRD002     | true      | 2026-03-12 11:00
+3   | PRD003     | false     | 2026-03-12 12:00
+4   | PRD004     | true      | 2026-03-12 09:00
+```
+
+Sending 2 items will process in this order:
+1. PRD004 (priority + oldest priority item)
+2. PRD002 (priority + next oldest priority item)
+
+---
+
+## Validation Rules
+
+### Cantidad Validation
+
+The `cantidad` parameter must:
+- Be a positive integer
+- Be greater than 0
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "cantidad must be a positive number",
+    "cantidad must be an integer number"
+  ],
+  "error": "Bad Request"
+}
+```
+
+### Costume State
+
+When adding a costume to the laundry queue:
+- The costume must exist in the inventory
+- The costume's state will be automatically changed to `EN_LAVANDERIA`
+- Costumes already in the queue cannot be added again until processed
+
+### Insufficient Items
+
+If you request to send more items than are available in the queue:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Solo hay 2 prendas pendientes de envío",
+  "error": "Bad Request"
+}
+```
